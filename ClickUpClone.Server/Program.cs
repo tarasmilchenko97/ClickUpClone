@@ -35,6 +35,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 
+app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 if (!app.Environment.IsDevelopment())

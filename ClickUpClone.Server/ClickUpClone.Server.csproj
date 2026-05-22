@@ -8,10 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.12" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ClickUpClone.Shared\ClickUpClone.Shared.csproj" />
+    <ProjectReference Include="..\ClickUpClone.Client\ClickUpClone.Client.csproj" />
   </ItemGroup>
 
 </Project>
