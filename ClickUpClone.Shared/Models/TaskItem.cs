@@ -19,4 +19,5 @@ public class TaskItem
     public List<TimeLogEntry> TimeLogs { get; set; } = new();
     public List<string> Attachments { get; set; } = new();
     public List<TaskComment> Comments { get; set; } = new();
+    public string? TaskSeqId { get; set; }
 }

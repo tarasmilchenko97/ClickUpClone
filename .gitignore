@@ -1,0 +1,30 @@
+## Build and Release Folders
+bin/
+obj/
+publish/
+
+## Core Tools
+.dotnet/
+.tools/
+
+## IDEs and Editors
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Local databases and logs
+*.log
+db.json
+dummy_upload.png
+inspection_results.json
+dom_report.json
+phase2_report.json
+*.png

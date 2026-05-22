@@ -1,217 +1,234 @@
 @using ClickUpClone.Shared.Models
+@inject HttpClient Http
 
 <div class="view-wrapper">
-    <div class="view-controls-bar">
-        <div class="view-controls-left">
-            <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="header-search-input" placeholder="Пошук за назвою..." value="@SearchQuery" @oninput="OnSearchInput" />
-                @if (!string.IsNullOrEmpty(SearchQuery))
-                {
-                    <button class="search-clear-btn" @onclick="ClearSearch">×</button>
-                }
-            </div>
-
-            <select class="header-filter-select" value="@TaskTypeFilter" @onchange="OnFilterChange">
-                <option value="all">Усі завдання</option>
-                <option value="main">Тільки головні</option>
-                <option value="subtask">Тільки підзадачі</option>
-            </select>
-        </div>
-        
-        <div class="view-controls-right">
-            @if (ActiveNode?.Type == NodeType.List)
-            {
-                <button class="btn btn-primary" @onclick="() => TriggerAddTask(TaskCompletionStatus.ToDo)">
-                    + Додати завдання
-                </button>
-            }
-        </div>
-    </div>
-
     <div class="list-view-container">
         @foreach (TaskCompletionStatus status in Enum.GetValues(typeof(TaskCompletionStatus)))
-    {
-        var statusTasks = GetTasksForStatus(status);
-        var isCollapsed = collapsedStatuses.GetValueOrDefault(status, false);
-        var statusDisplayName = GetStatusDisplayName(status);
-        
-        <div class="status-group @(isCollapsed ? "collapsed" : "")">
-            <div class="status-group-header" @onclick="() => ToggleStatus(status)">
-                <Icon Name="@(isCollapsed ? "chevron-right" : "chevron-down")" Class="group-chevron" />
-                <span class="status-indicator-bar @status.ToString().ToLower()"></span>
-                <span class="group-title">@statusDisplayName</span>
-                <span class="group-count">@statusTasks.Count</span>
-                
-                @if (ActiveNode?.Type == NodeType.List)
-                {
-                    <button class="list-add-task-btn" title="Додати задачу" @onclick:stopPropagation @onclick="() => TriggerAddTask(status)">
-                        <Icon Name="plus" />
-                    </button>
-                }
-            </div>
-
-            @if (!isCollapsed)
-            {
-                <div class="status-group-content">
-                    @if (!statusTasks.Any())
+        {
+            var statusTasks = GetTasksForStatus(status);
+            var isCollapsed = collapsedStatuses.GetValueOrDefault(status, false);
+            var statusDisplayName = GetStatusDisplayName(status);
+            
+            <div class="status-group @(isCollapsed ? "collapsed" : "")">
+                <div class="status-group-header" @onclick="() => ToggleStatus(status)">
+                    <Icon Name="@(isCollapsed ? "chevron-right" : "chevron-down")" Class="group-chevron" />
+                    <span class="status-indicator-bar @status.ToString().ToLower()"></span>
+                    <span class="group-title">@statusDisplayName</span>
+                    <span class="group-count">@statusTasks.Count</span>
+                    
+                    @if (ActiveNode?.Type == NodeType.List)
                     {
-                        <div class="list-view-empty">Немає завдань у цьому статусі.</div>
-                    }
-                    else
-                    {
-                        <div class="list-view-table">
-                            <div class="list-view-row header">
-                                <div class="col col-title">Назва</div>
-                                <div class="col col-assignee">Виконавець</div>
-                                <div class="col col-priority">Пріоритет</div>
-                                <div class="col col-date">Кінцевий термін</div>
-                                <div class="col col-tags">Теги</div>
-                            </div>
-
-                            @foreach (var task in statusTasks)
-                            {
-                                 var subtasks = (TaskTypeFilter == "subtask" || !string.IsNullOrWhiteSpace(SearchQuery))
-                                     ? new List<TaskItem>()
-                                     : AllTasks.Where(t => t.ParentTaskId == task.Id).ToList();
-                                 var isExpanded = expandedTasks.GetValueOrDefault(task.Id, false);
-                                
-                                <div class="list-view-row-container">
-                                    <div class="list-view-row main-task" @onclick="() => EditTask(task)">
-                                        <div class="col col-title">
-                                            @if (subtasks.Any())
-                                            {
-                                                <button class="subtask-toggle-btn" @onclick:stopPropagation @onclick="() => ToggleTaskExpansion(task.Id)">
-                                                    <Icon Name="@(isExpanded ? "chevron-down" : "chevron-right")" />
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <span class="subtask-spacer"></span>
-                                            }
-                                            <span class="task-title-text">
-                                                @if (task.ParentTaskId != null)
-                                                {
-                                                    <span class="subtask-badge-icon" title="Підзадача" style="color: var(--text-muted); margin-right: 6px;">⮑</span>
-                                                }
-                                                @task.Title
-                                            </span>
-                                            @if (subtasks.Any())
-                                            {
-                                                <span class="subtask-count-badge" title="Кількість підзавдань">
-                                                    <Icon Name="subtask" /> @subtasks.Count
-                                                </span>
-                                            }
-                                        </div>
-                                        <div class="col col-assignee" @onclick:stopPropagation>
-                                            @if (!string.IsNullOrEmpty(task.Assignee))
-                                            {
-                                                <div class="assignee-avatar @GetAssigneeClass(task.Assignee)" title="@task.Assignee">
-                                                    @GetInitials(task.Assignee)
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
-                                            }
-                                        </div>
-                                        <div class="col col-priority">
-                                            <span class="priority-badge @task.Priority.ToString()">@GetPriorityDisplayName(task.Priority)</span>
-                                        </div>
-                                        <div class="col col-date">
-                                            @if (task.DueDate.HasValue)
-                                            {
-                                                var isOverdue = task.DueDate.Value.Date < DateTime.Today && task.Status != TaskCompletionStatus.Done;
-                                                <span class="due-date-badge @(isOverdue ? "overdue" : "")">
-                                                    @task.DueDate.Value.ToString("dd MMM yyyy")
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span style="color: var(--text-muted);">—</span>
-                                            }
-                                        </div>
-                                        <div class="col col-tags">
-                                            @if (task.Tags != null && task.Tags.Any())
-                                            {
-                                                <div class="task-tags">
-                                                    @foreach (var tag in task.Tags)
-                                                    {
-                                                        <span class="tag-pill">@tag</span>
-                                                    }
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <span style="color: var(--text-muted);">—</span>
-                                            }
-                                        </div>
-                                    </div>
-
-                                     @if (isExpanded && subtasks.Any())
-                                     {
-                                             @foreach (var sub in subtasks)
-                                             {
-                                                 <div class="list-view-row sub-task" @onclick="() => EditTask(sub)">
-                                                     <div class="col col-title" style="padding-left: 36px;">
-                                                         <Icon Name="subtask" Class="subtask-indent-icon" />
-                                                         <span class="task-title-text">@sub.Title</span>
-                                                     </div>
-                                                    <div class="col col-assignee" @onclick:stopPropagation>
-                                                        @if (!string.IsNullOrEmpty(sub.Assignee))
-                                                        {
-                                                            <div class="assignee-avatar @GetAssigneeClass(sub.Assignee)" title="@sub.Assignee">
-                                                                @GetInitials(sub.Assignee)
-                                                            </div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
-                                                        }
-                                                     </div>
-                                                    <div class="col col-priority">
-                                                        <span class="priority-badge @sub.Priority.ToString()">@GetPriorityDisplayName(sub.Priority)</span>
-                                                    </div>
-                                                    <div class="col col-date">
-                                                        @if (sub.DueDate.HasValue)
-                                                        {
-                                                            var isOverdue = sub.DueDate.Value.Date < DateTime.Today && sub.Status != TaskCompletionStatus.Done;
-                                                            <span class="due-date-badge @(isOverdue ? "overdue" : "")">
-                                                                @sub.DueDate.Value.ToString("dd MMM yyyy")
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span style="color: var(--text-muted);">—</span>
-                                                        }
-                                                    </div>
-                                                    <div class="col col-tags">
-                                                        @if (sub.Tags != null && sub.Tags.Any())
-                                                        {
-                                                            <div class="task-tags">
-                                                                @foreach (var tag in sub.Tags)
-                                                                {
-                                                                    <span class="tag-pill">@tag</span>
-                                                                }
-                                                            </div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span style="color: var(--text-muted);">—</span>
-                                                        }
-                                                    </div>
-                                                 </div>
-                                             }
-                                     }
-                                </div>
-                            }
-                        </div>
+                        <button class="list-add-task-btn" title="Додати задачу" @onclick:stopPropagation @onclick="() => TriggerAddTask(status)">
+                            <Icon Name="plus" />
+                        </button>
                     }
                 </div>
-            }
+
+                @if (!isCollapsed)
+                {
+                    <div class="status-group-content">
+                        @if (!statusTasks.Any())
+                        {
+                            <div class="list-view-empty">Немає завдань у цьому статусі.</div>
+                        }
+                        else
+                        {
+                            <div class="list-view-table">
+                                <div class="list-view-row header">
+                                    <div class="col col-checkbox" @onclick:stopPropagation>
+                                        <input type="checkbox" checked="@IsAllTasksInStatusSelected(statusTasks)" @onchange="(e) => ToggleSelectAllStatus(e, statusTasks)" />
+                                    </div>
+                                    <div class="col col-title">Назва</div>
+                                    <div class="col col-assignee">Виконавець</div>
+                                    <div class="col col-priority">Пріоритет</div>
+                                    <div class="col col-date">Кінцевий термін</div>
+                                    <div class="col col-tags">Теги</div>
+                                </div>
+
+                                @foreach (var task in statusTasks)
+                                {
+                                     var subtasks = (TaskTypeFilter == "subtask" || TaskTypeFilter == "all" || !string.IsNullOrWhiteSpace(SearchQuery))
+                                         ? new List<TaskItem>()
+                                         : AllTasks.Where(t => t.ParentTaskId == task.Id).ToList();
+                                     var isExpanded = expandedTasks.GetValueOrDefault(task.Id, false);
+                                    
+                                    <div class="list-view-row-container">
+                                        <div class="list-view-row main-task" @onclick="() => EditTask(task)">
+                                            <div class="col col-checkbox" @onclick:stopPropagation>
+                                                <input type="checkbox" checked="@selectedTaskIds.Contains(task.Id)" @onchange="() => ToggleTaskSelection(task.Id)" />
+                                            </div>
+                                            <div class="col col-title">
+                                                @if (subtasks.Any())
+                                                {
+                                                    <button class="subtask-toggle-btn" @onclick:stopPropagation @onclick="() => ToggleTaskExpansion(task.Id)">
+                                                        <Icon Name="@(isExpanded ? "chevron-down" : "chevron-right")" />
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="subtask-spacer"></span>
+                                                }
+                                                <span class="task-title-text">
+                                                    @if (task.ParentTaskId != null)
+                                                    {
+                                                        <span class="subtask-badge-icon" title="Підзадача" style="color: var(--text-muted); margin-right: 6px;">⮑</span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(task.TaskSeqId))
+                                                    {
+                                                        <span class="task-seq-id" style="color: var(--text-muted); font-weight: 500; margin-right: 6px;">@task.TaskSeqId</span>
+                                                    }
+                                                    @task.Title
+                                                </span>
+                                                @if (subtasks.Any())
+                                                {
+                                                    <span class="subtask-count-badge" title="Кількість підзавдань">
+                                                        <Icon Name="subtask" /> @subtasks.Count
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="col col-assignee" @onclick:stopPropagation>
+                                                @if (!string.IsNullOrEmpty(task.Assignee))
+                                                {
+                                                    <div class="assignee-avatar @GetAssigneeClass(task.Assignee)" title="@task.Assignee">
+                                                        @GetInitials(task.Assignee)
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                                }
+                                            </div>
+                                            <div class="col col-priority">
+                                                <span class="priority-badge @task.Priority.ToString()">@GetPriorityDisplayName(task.Priority)</span>
+                                            </div>
+                                            <div class="col col-date">
+                                                @if (task.DueDate.HasValue)
+                                                {
+                                                    var isOverdue = task.DueDate.Value.Date < DateTime.Today && task.Status != TaskCompletionStatus.Done;
+                                                    <span class="due-date-badge @(isOverdue ? "overdue" : "")">
+                                                        @task.DueDate.Value.ToString("dd MMM yyyy")
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span style="color: var(--text-muted);">—</span>
+                                                }
+                                            </div>
+                                            <div class="col col-tags">
+                                                @if (task.Tags != null && task.Tags.Any())
+                                                {
+                                                    <div class="task-tags">
+                                                        @foreach (var tag in task.Tags)
+                                                        {
+                                                            <span class="tag-pill">@tag</span>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span style="color: var(--text-muted);">—</span>
+                                                }
+                                            </div>
+                                        </div>
+
+                                         @if (isExpanded && subtasks.Any())
+                                         {
+                                                 @foreach (var sub in subtasks)
+                                                 {
+                                                     <div class="list-view-row sub-task" @onclick="() => EditTask(sub)">
+                                                         <div class="col col-checkbox" @onclick:stopPropagation>
+                                                             <input type="checkbox" checked="@selectedTaskIds.Contains(sub.Id)" @onchange="() => ToggleTaskSelection(sub.Id)" />
+                                                         </div>
+                                                         <div class="col col-title" style="padding-left: 36px;">
+                                                             <Icon Name="subtask" Class="subtask-indent-icon" />
+                                                             <span class="task-title-text">
+                                                                 @if (!string.IsNullOrEmpty(sub.TaskSeqId))
+                                                                 {
+                                                                     <span class="task-seq-id" style="color: var(--text-muted); font-weight: 500; margin-right: 6px;">@sub.TaskSeqId</span>
+                                                                 }
+                                                                 @sub.Title
+                                                             </span>
+                                                         </div>
+                                                        <div class="col col-assignee" @onclick:stopPropagation>
+                                                            @if (!string.IsNullOrEmpty(sub.Assignee))
+                                                            {
+                                                                <div class="assignee-avatar @GetAssigneeClass(sub.Assignee)" title="@sub.Assignee">
+                                                                    @GetInitials(sub.Assignee)
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                                            }
+                                                        </div>
+                                                        <div class="col col-priority">
+                                                            <span class="priority-badge @sub.Priority.ToString()">@GetPriorityDisplayName(sub.Priority)</span>
+                                                        </div>
+                                                        <div class="col col-date">
+                                                            @if (sub.DueDate.HasValue)
+                                                            {
+                                                                var isOverdue = sub.DueDate.Value.Date < DateTime.Today && sub.Status != TaskCompletionStatus.Done;
+                                                                <span class="due-date-badge @(isOverdue ? "overdue" : "")">
+                                                                    @sub.DueDate.Value.ToString("dd MMM yyyy")
+                                                                </span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span style="color: var(--text-muted);">—</span>
+                                                            }
+                                                        </div>
+                                                        <div class="col col-tags">
+                                                            @if (sub.Tags != null && sub.Tags.Any())
+                                                            {
+                                                                <div class="task-tags">
+                                                                    @foreach (var tag in sub.Tags)
+                                                                    {
+                                                                        <span class="tag-pill">@tag</span>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span style="color: var(--text-muted);">—</span>
+                                                            }
+                                                        </div>
+                                                     </div>
+                                                 }
+                                         }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Floating Bulk Actions Toolbar -->
+    @if (selectedTaskIds.Any())
+    {
+        <div class="floating-bulk-bar">
+            <div class="bulk-info">
+                <span>Обрано: <strong>@selectedTaskIds.Count</strong></span>
+            </div>
+            <div class="bulk-actions">
+                <select class="form-input bulk-status-select" @onchange="BulkUpdateStatus">
+                    <option value="">Змінити статус...</option>
+                    <option value="@TaskCompletionStatus.ToDo">To Do</option>
+                    <option value="@TaskCompletionStatus.ReadyForDevelopment">Ready for Dev</option>
+                    <option value="@TaskCompletionStatus.InProgress">In Progress</option>
+                    <option value="@TaskCompletionStatus.InReview">In Review</option>
+                    <option value="@TaskCompletionStatus.ReadyForTesting">Ready for Test</option>
+                    <option value="@TaskCompletionStatus.InTesting">In Testing</option>
+                    <option value="@TaskCompletionStatus.Tested">Tested</option>
+                    <option value="@TaskCompletionStatus.Done">Done</option>
+                </select>
+                <button class="btn btn-danger" @onclick="BulkDelete">Видалити</button>
+                <button class="btn btn-secondary" @onclick="ClearSelection">Скасувати</button>
+            </div>
         </div>
     }
-</div>
 </div>
 
 @code {
@@ -219,32 +236,14 @@
     [Parameter] public List<HierarchyNode> AllNodes { get; set; } = new();
     [Parameter] public List<TaskItem> AllTasks { get; set; } = new();
     [Parameter] public string SearchQuery { get; set; } = "";
-    [Parameter] public EventCallback<string> SearchQueryChanged { get; set; }
     [Parameter] public string TaskTypeFilter { get; set; } = "all";
-    [Parameter] public EventCallback<string> TaskTypeFilterChanged { get; set; }
     [Parameter] public EventCallback<TaskItem> OnEditTask { get; set; }
     [Parameter] public EventCallback<TaskCompletionStatus> OnAddTask { get; set; }
-
-    private async Task OnSearchInput(ChangeEventArgs e)
-    {
-        SearchQuery = e.Value?.ToString() ?? "";
-        await SearchQueryChanged.InvokeAsync(SearchQuery);
-    }
-
-    private async Task ClearSearch()
-    {
-        SearchQuery = "";
-        await SearchQueryChanged.InvokeAsync(SearchQuery);
-    }
-
-    private async Task OnFilterChange(ChangeEventArgs e)
-    {
-        TaskTypeFilter = e.Value?.ToString() ?? "all";
-        await TaskTypeFilterChanged.InvokeAsync(TaskTypeFilter);
-    }
+    [Parameter] public EventCallback OnRefreshData { get; set; }
 
     private Dictionary<TaskCompletionStatus, bool> collapsedStatuses = new();
     private Dictionary<Guid, bool> expandedTasks = new();
+    private HashSet<Guid> selectedTaskIds = new();
 
     private List<TaskItem> GetTasksForStatus(TaskCompletionStatus status)
     {
@@ -274,20 +273,13 @@
         {
             rawTasks = rawTasks.Where(t => t.ParentTaskId != null).ToList();
         }
-        else
-        {
-            // For "all", if there's a search query, show both flat.
-            // If there's no search query, show only main tasks at top level by default
-            if (string.IsNullOrWhiteSpace(SearchQuery))
-            {
-                rawTasks = rawTasks.Where(t => t.ParentTaskId == null).ToList();
-            }
-        }
+        // In "all" mode, both parent tasks and subtasks are flat at top level.
 
         // Apply search query:
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
-            rawTasks = rawTasks.Where(t => t.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+            rawTasks = rawTasks.Where(t => t.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) || 
+                                           (t.TaskSeqId != null && t.TaskSeqId.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
         return rawTasks;
@@ -341,6 +333,80 @@
     private async Task TriggerAddTask(TaskCompletionStatus status)
     {
         await OnAddTask.InvokeAsync(status);
+    }
+
+    private bool IsAllTasksInStatusSelected(List<TaskItem> statusTasks)
+    {
+        return statusTasks.Any() && statusTasks.All(t => selectedTaskIds.Contains(t.Id));
+    }
+    
+    private void ToggleSelectAllStatus(ChangeEventArgs e, List<TaskItem> statusTasks)
+    {
+        bool isChecked = (bool)(e.Value ?? false);
+        if (isChecked)
+        {
+            foreach (var t in statusTasks)
+            {
+                selectedTaskIds.Add(t.Id);
+            }
+        }
+        else
+        {
+            foreach (var t in statusTasks)
+            {
+                selectedTaskIds.Remove(t.Id);
+            }
+        }
+    }
+
+    private void ToggleTaskSelection(Guid taskId)
+    {
+        if (selectedTaskIds.Contains(taskId))
+        {
+            selectedTaskIds.Remove(taskId);
+        }
+        else
+        {
+            selectedTaskIds.Add(taskId);
+        }
+    }
+
+    private async Task BulkUpdateStatus(ChangeEventArgs e)
+    {
+        var statusStr = e.Value?.ToString();
+        if (string.IsNullOrEmpty(statusStr) || !Enum.TryParse<TaskCompletionStatus>(statusStr, out var newStatus))
+        {
+            return;
+        }
+        
+        foreach (var id in selectedTaskIds)
+        {
+            var task = AllTasks.FirstOrDefault(t => t.Id == id);
+            if (task != null)
+            {
+                task.Status = newStatus;
+                await Http.PutAsJsonAsync($"api/workspace/tasks/{task.Id}", task, JsonOptions.Default);
+            }
+        }
+        
+        selectedTaskIds.Clear();
+        await OnRefreshData.InvokeAsync();
+    }
+    
+    private async Task BulkDelete()
+    {
+        foreach (var id in selectedTaskIds)
+        {
+            await Http.DeleteAsync($"api/workspace/tasks/{id}");
+        }
+        
+        selectedTaskIds.Clear();
+        await OnRefreshData.InvokeAsync();
+    }
+    
+    private void ClearSelection()
+    {
+        selectedTaskIds.Clear();
     }
 
     private string GetStatusDisplayName(TaskCompletionStatus status)

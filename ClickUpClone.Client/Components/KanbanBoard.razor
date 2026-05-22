@@ -13,34 +13,6 @@ else
     var filteredTasks = GetFilteredTasks();
 
     <div class="view-wrapper">
-        <div class="view-controls-bar">
-            <div class="view-controls-left">
-                <div class="search-input-wrapper">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" class="header-search-input" placeholder="Пошук за назвою..." value="@SearchQuery" @oninput="OnSearchInput" />
-                    @if (!string.IsNullOrEmpty(SearchQuery))
-                    {
-                        <button class="search-clear-btn" @onclick="ClearSearch">×</button>
-                    }
-                </div>
-
-                <select class="header-filter-select" value="@TaskTypeFilter" @onchange="OnFilterChange">
-                    <option value="all">Усі завдання</option>
-                    <option value="main">Тільки головні</option>
-                    <option value="subtask">Тільки підзадачі</option>
-                </select>
-            </div>
-            
-            <div class="view-controls-right">
-                @if (ActiveNode?.Type == NodeType.List)
-                {
-                    <button class="btn btn-primary" @onclick="() => TriggerAddTask(TaskCompletionStatus.ToDo)">
-                        + Додати завдання
-                    </button>
-                }
-            </div>
-        </div>
-
         <div class="board-area">
         <div class="board-container">
             @foreach (TaskCompletionStatus status in Enum.GetValues(typeof(TaskCompletionStatus)))
@@ -210,20 +182,12 @@ else
         {
             rawTasks = rawTasks.Where(t => t.ParentTaskId != null).ToList();
         }
-        else
-        {
-            // For "all", if there is no active search, hide subtasks from top level to show normal board.
-            // If there is an active search, display all matching tasks flat.
-            if (string.IsNullOrWhiteSpace(SearchQuery))
-            {
-                rawTasks = rawTasks.Where(t => t.ParentTaskId == null).ToList();
-            }
-        }
 
         // Apply search query:
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
-            rawTasks = rawTasks.Where(t => t.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+            rawTasks = rawTasks.Where(t => t.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) || 
+                                           (t.TaskSeqId != null && t.TaskSeqId.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
         return rawTasks;

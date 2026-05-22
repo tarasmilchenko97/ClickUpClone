@@ -2332,3 +2332,352 @@ html, body, #app {
     display: flex;
     align-items: center;
 }
+
+/* --- Phase 2.3 Additions: Layout, Functionality, and Bulk Actions --- */
+
+/* Task Detail Modal Custom Sizing & Grid Layout */
+.modal-window.task-detail {
+    width: 96vw !important;
+    height: 94vh !important;
+    max-width: 96vw !important;
+    max-height: 94vh !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-window.task-detail .modal-body.task-modal-grid {
+    display: grid;
+    grid-template-columns: 250px 1fr 380px;
+    height: 100%;
+    max-height: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+.task-tree-sidebar {
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.task-details-pane {
+    padding: 24px;
+    overflow-y: auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.task-comments-pane {
+    border-left: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Breadcrumbs inside Task Modal */
+.modal-breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 24px 0 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.modal-breadcrumb-item {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.modal-breadcrumb-item:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+.modal-breadcrumb-item.active {
+    color: var(--primary);
+    font-weight: 600;
+    cursor: default;
+    text-decoration: none !important;
+}
+.modal-breadcrumbs .modal-breadcrumb-separator {
+    color: var(--border-color-hover);
+}
+
+/* Rich Text Description Editor */
+.description-editor-wrapper {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.description-preview-container {
+    padding: 14px;
+    min-height: 100px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.description-preview-container:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.description-placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.description-preview-content {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-main);
+}
+
+.description-preview-content p {
+    margin-bottom: 8px;
+}
+
+.description-edit-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.description-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.toolbar-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toolbar-btn:hover {
+    color: var(--text-main);
+    border-color: var(--border-color-hover);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.toolbar-btn.text-red { color: #e05656; border-color: rgba(224, 86, 86, 0.3); }
+.toolbar-btn.text-red:hover { background-color: rgba(224, 86, 86, 0.1); }
+
+.toolbar-btn.text-green { color: #2ecc71; border-color: rgba(46, 204, 113, 0.3); }
+.toolbar-btn.text-green:hover { background-color: rgba(46, 204, 113, 0.1); }
+
+.toolbar-btn.text-blue { color: #3498db; border-color: rgba(52, 152, 219, 0.3); }
+.toolbar-btn.text-blue:hover { background-color: rgba(52, 152, 219, 0.1); }
+
+.description-textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 12px !important;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-main);
+    outline: none !important;
+    box-shadow: none !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Collapsible Accordions in Task Details */
+.modal-accordions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.accordion-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.01);
+    overflow: hidden;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.accordion-item:hover {
+    border-color: var(--border-color-hover);
+}
+
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.accordion-header:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.accordion-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.accordion-chevron {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.accordion-body {
+    padding: 16px;
+    border-top: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Floating Bulk Actions Toolbar */
+.floating-bulk-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-modal);
+    border: 1px solid var(--primary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(127, 86, 218, 0.2);
+    border-radius: 30px;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 99;
+    animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+    from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+.bulk-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-right: 1px solid var(--border-color);
+    padding-right: 20px;
+}
+
+.bulk-info strong {
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+
+.bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bulk-status-select {
+    width: 160px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+}
+
+.bulk-actions .btn {
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    border-radius: 20px;
+}
+
+/* Checkbox Columns alignment */
+.col-checkbox {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0 8px !important;
+}
+
+.col-checkbox input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--primary);
+    width: 15px;
+    height: 15px;
+}
+
+/* Table View Subtask Indentation and Toggles */
+.subtask-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    margin-right: 6px;
+    transition: background-color 0.2s, color 0.2s;
+}
+.subtask-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+.subtask-spacer {
+    display: inline-block;
+    width: 26px;
+}
+.subtask-indent-icon {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-right: 6px;
+}
+.title-cell {
+    display: flex;
+    align-items: center;
+}
+.task-title-text {
+    display: inline-flex;
+    align-items: center;
+}
+.subtask-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: rgba(127, 86, 218, 0.15);
+    color: #c084fc;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    margin-left: 8px;
+}

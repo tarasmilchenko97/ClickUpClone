@@ -87,21 +87,7 @@
                 }
             </div>
 
-            @if (selectedNode != null)
-            {
-                <div class="view-tabs">
-                    <button class="view-tab @(currentView == ViewMode.Board ? "active" : "")" @onclick="() => SwitchView(ViewMode.Board)">
-                        <Icon Name="board" /> Дошка
-                    </button>
-                    <button class="view-tab @(currentView == ViewMode.List ? "active" : "")" @onclick="() => SwitchView(ViewMode.List)">
-                        <Icon Name="list" /> Список
-                    </button>
-                    <button class="view-tab @(currentView == ViewMode.Table ? "active" : "")" @onclick="() => SwitchView(ViewMode.Table)">
-                        <Icon Name="table" /> Таблиця
-                    </button>
-                </div>
-
-            }
+            @* View tabs moved to unified view-controls-bar below *@
 
             <div class="header-actions">
                 <button class="user-profile-btn-header" @onclick="OpenCabinet" title="Мій профіль">
@@ -131,13 +117,54 @@
         }
         else
         {
+            <!-- Unified View Controls Bar -->
+            <div class="view-controls-bar">
+                <div class="view-controls-left">
+                    <div class="view-tabs">
+                        <button class="view-tab @(currentView == ViewMode.Board ? "active" : "")" @onclick="() => SwitchView(ViewMode.Board)">
+                            <Icon Name="board" /> Дошка
+                        </button>
+                        <button class="view-tab @(currentView == ViewMode.List ? "active" : "")" @onclick="() => SwitchView(ViewMode.List)">
+                            <Icon Name="list" /> Список
+                        </button>
+                        <button class="view-tab @(currentView == ViewMode.Table ? "active" : "")" @onclick="() => SwitchView(ViewMode.Table)">
+                            <Icon Name="table" /> Таблиця
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="view-controls-right">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="header-search-input" placeholder="Пошук за назвою або ID..." @bind="searchQuery" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(searchQuery))
+                        {
+                            <button class="search-clear-btn" @onclick="() => searchQuery = string.Empty">×</button>
+                        }
+                    </div>
+
+                    <select class="header-filter-select" @bind="taskTypeFilter">
+                        <option value="all">Усі завдання</option>
+                        <option value="main">Тільки головні</option>
+                        <option value="subtask">Тільки підзадачі</option>
+                    </select>
+
+                    @if (selectedNode?.Type == NodeType.List)
+                    {
+                        <button class="btn btn-primary" @onclick="() => OpenAddTaskModal(TaskCompletionStatus.ToDo)">
+                            + Додати завдання
+                        </button>
+                    }
+                </div>
+            </div>
+
             @if (currentView == ViewMode.Board)
             {
                 <KanbanBoard ActiveNode="selectedNode"
                              AllNodes="nodes"
                              Tasks="tasks"
-                             @bind-SearchQuery="searchQuery"
-                             @bind-TaskTypeFilter="taskTypeFilter"
+                             SearchQuery="@searchQuery"
+                             TaskTypeFilter="@taskTypeFilter"
                              OnTaskUpdated="UpdateTaskStatus"
                              OnEditTask="OpenEditTaskModal"
                              OnAddTask="OpenAddTaskModal" />
@@ -147,20 +174,22 @@
                 <ListView ActiveNode="selectedNode"
                           AllNodes="nodes"
                           AllTasks="tasks"
-                          @bind-SearchQuery="searchQuery"
-                          @bind-TaskTypeFilter="taskTypeFilter"
+                          SearchQuery="@searchQuery"
+                          TaskTypeFilter="@taskTypeFilter"
                           OnEditTask="OpenEditTaskModal"
-                          OnAddTask="OpenAddTaskModal" />
+                          OnAddTask="OpenAddTaskModal"
+                          OnRefreshData="LoadData" />
             }
             else if (currentView == ViewMode.Table)
             {
                 <TableView ActiveNode="selectedNode"
                            AllNodes="nodes"
                            AllTasks="tasks"
-                           @bind-SearchQuery="searchQuery"
-                           @bind-TaskTypeFilter="taskTypeFilter"
+                           SearchQuery="@searchQuery"
+                           TaskTypeFilter="@taskTypeFilter"
                            OnEditTask="OpenEditTaskModal"
-                           OnAddTask="OpenAddTaskModal" />
+                           OnAddTask="OpenAddTaskModal"
+                           OnRefreshData="LoadData" />
             }
         }
     </div>

@@ -3,24 +3,30 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject HttpClient Http
 @inject UserService UserService
+@inject IJSRuntime JSRuntime
 
 @if (IsOpen)
 {
+    var breadcrumbs = GetTaskBreadcrumbs();
+
     <div class="modal-overlay" @onclick="Close">
         <div class="modal-window task-detail" @onclick:stopPropagation>
             <div class="modal-header-container">
-                @if (taskNavigationStack.Count > 1)
+                @if (breadcrumbs.Count > 1)
                 {
                     <div class="modal-breadcrumbs">
-                        @for (int i = 0; i < taskNavigationStack.Count; i++)
+                        @for (int i = 0; i < breadcrumbs.Count; i++)
                         {
-                            var stackTask = taskNavigationStack[i];
-                            var index = i;
-                            <span class="modal-breadcrumb-item @(i == taskNavigationStack.Count - 1 ? "active" : "")"
+                            var stackTask = breadcrumbs[i];
+                            <span class="modal-breadcrumb-item @(i == breadcrumbs.Count - 1 ? "active" : "")"
                                   @onclick="() => NavigateToTask(stackTask)">
+                                @if (!string.IsNullOrEmpty(stackTask.TaskSeqId))
+                                {
+                                    <span style="font-weight: 500; font-size: 0.8rem; margin-right: 2px;">@stackTask.TaskSeqId</span>
+                                }
                                 @stackTask.Title
                             </span>
-                            @if (i < taskNavigationStack.Count - 1)
+                            @if (i < breadcrumbs.Count - 1)
                             {
                                 <span class="modal-breadcrumb-separator">/</span>
                             }
@@ -29,7 +35,13 @@
                 }
                 
                 <div class="modal-header">
-                    <h3 class="modal-title">@(IsNewTask ? "Створити завдання" : "Редагувати завдання")</h3>
+                    <h3 class="modal-title">
+                        @if (!string.IsNullOrEmpty(Task.TaskSeqId))
+                        {
+                            <span class="task-modal-seq-id" style="color: var(--text-muted); margin-right: 8px;">[@Task.TaskSeqId]</span>
+                        }
+                        @(IsNewTask ? "Створити завдання" : "Редагувати завдання")
+                    </h3>
                     <button class="modal-close" @onclick="Close">
                         <Icon Name="x" />
                     </button>
@@ -104,7 +116,7 @@
                                     {
                                         <span class="tag-edit-pill">
                                             @tag
-                                            <button class="tag-remove-btn" @onclick="() => RemoveTag(tag)">×</button>
+                                            <button class="tag-remove-btn" type="button" @onclick="() => RemoveTag(tag)">×</button>
                                         </span>
                                     }
                                 }
@@ -140,7 +152,37 @@
                         <div class="form-group">
                             <label>Опис та скріншоти</label>
                             <div class="description-editor-wrapper">
-                                <textarea class="form-input description-textarea" style="height: 120px; resize: vertical; margin-bottom: 12px;" @bind="Task.Description" placeholder="Опишіть завдання..."></textarea>
+                                @if (!isEditingDescription)
+                                {
+                                    <div class="description-preview-container" @onclick="StartEditingDescription">
+                                        @if (string.IsNullOrWhiteSpace(Task.Description))
+                                        {
+                                            <div class="description-placeholder">Натисніть тут, щоб додати опис...</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="description-preview-content">
+                                                @((MarkupString)Task.Description)
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="description-edit-container">
+                                        <div class="description-toolbar">
+                                            <button type="button" class="toolbar-btn bold-btn" title="Жирний" @onclick='() => ApplyFormat("<b>", "</b>")'><b>B</b></button>
+                                            <button type="button" class="toolbar-btn italic-btn" title="Курсив" @onclick='() => ApplyFormat("<i>", "</i>")'><i>I</i></button>
+                                            <button type="button" class="toolbar-btn highlight-btn" title="Маркер" @onclick='() => ApplyFormat("<mark>", "</mark>")'>H</button>
+                                            <button type="button" class="toolbar-btn color-btn text-red" title="Червоний" @onclick='() => ApplyFormat("<span style=\"color:#e05656\">", "</span>")'>Червоний</button>
+                                            <button type="button" class="toolbar-btn color-btn text-green" title="Зелений" @onclick='() => ApplyFormat("<span style=\"color:#2ecc71\">", "</span>")'>Зелений</button>
+                                            <button type="button" class="toolbar-btn color-btn text-blue" title="Синій" @onclick='() => ApplyFormat("<span style=\"color:#3498db\">", "</span>")'>Синій</button>
+                                            
+                                            <button type="button" class="btn btn-secondary btn-sm finish-desc-btn" style="margin-left: auto;" @onclick="FinishEditingDescription">Готово</button>
+                                        </div>
+                                        <textarea id="task-description-textarea" class="form-input description-textarea" style="height: 150px; resize: vertical; margin-bottom: 12px;" @bind="Task.Description" placeholder="Опишіть завдання..."></textarea>
+                                    </div>
+                                }
                                 
                                 <div class="inline-attachments-area">
                                     <div class="inline-attachments-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -218,105 +260,130 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Теги</label>
-                            <div class="tags-edit-area">
-                                @if (Task.Tags != null)
-                                {
-                                    @foreach (var tag in Task.Tags)
-                                    {
-                                        <span class="tag-edit-pill">
-                                            @tag
-                                            <button class="tag-remove-btn" @onclick="() => RemoveTag(tag)">×</button>
-                                        </span>
-                                    }
-                                }
-                                <input type="text" class="tag-input-field" 
-                                       placeholder="Додати тег..." 
-                                       @bind="newTagText" 
-                                       @bind:event="oninput"
-                                       @onkeydown="HandleTagKeyDown" />
-                            </div>
-                        </div>
-
-                        <!-- Time Estimation & Tracking Section -->
+                        <!-- Accordion sections -->
                         <div class="modal-section-divider"></div>
-                        <div class="time-tracking-section">
-                            <h4 class="section-label">⏱️ Оцінка та відстеження часу</h4>
+                        <div class="modal-accordions-container">
                             
-                            <div class="time-inputs-row">
-                                <div class="form-group time-est-group">
-                                    <label>Оцінка (годин)</label>
-                                    <input type="number" step="0.5" min="0" class="form-input" @bind="Task.TimeEstimate" placeholder="напр. 8" />
+                            <!-- Accordion Item: Tags -->
+                            <div class="accordion-item @(isTagsExpanded ? "expanded" : "")">
+                                <div class="accordion-header" @onclick="ToggleTagsAccordion">
+                                    <span class="accordion-title">🏷️ Теги (@(Task.Tags?.Count ?? 0))</span>
+                                    <Icon Name="@(isTagsExpanded ? "chevron-down" : "chevron-right")" Class="accordion-chevron" />
                                 </div>
-
-                                <div class="time-log-form">
-                                    <label>Логувати час</label>
-                                    <div class="time-log-inputs">
-                                        <input type="number" step="0.25" min="0.1" class="form-input log-hours-input" @bind="newLogHours" placeholder="Години (напр. 2)" />
-                                        <input type="text" class="form-input log-note-input" @bind="newLogNote" placeholder="Коментар до логу..." />
-                                        <button class="btn btn-secondary" type="button" @onclick="LogTime">Додати лог</button>
+                                @if (isTagsExpanded)
+                                {
+                                    <div class="accordion-body">
+                                        <div class="tags-edit-area">
+                                            @if (Task.Tags != null)
+                                            {
+                                                @foreach (var tag in Task.Tags)
+                                                {
+                                                    <span class="tag-edit-pill">
+                                                        @tag
+                                                        <button class="tag-remove-btn" type="button" @onclick="() => RemoveTag(tag)">×</button>
+                                                    </span>
+                                                }
+                                            }
+                                            <input type="text" class="tag-input-field" 
+                                                   placeholder="Додати тег..." 
+                                                   @bind="newTagText" 
+                                                   @bind:event="oninput"
+                                                   @onkeydown="HandleTagKeyDown" />
+                                        </div>
                                     </div>
-                                </div>
+                                }
                             </div>
 
-                            @{
-                                double spentTime = Task.TimeLogs != null ? Task.TimeLogs.Sum(l => l.Hours) : 0;
-                                double? estTime = Task.TimeEstimate;
-                            }
-
-                            @if (estTime.HasValue && estTime.Value > 0)
-                            {
-                                var pct = Math.Min(100.0, (spentTime / estTime.Value) * 100);
-                                var progressColor = spentTime > estTime.Value ? "var(--priority-urgent)" : "var(--accent-primary)";
-                                <div class="time-progress-bar-container">
-                                    <div class="time-progress-labels">
-                                        <span>Прогрес виконання: @pct.ToString("F0")%</span>
-                                        <span>@spentTime.ToString("F1") год / @estTime.Value.ToString("F1") год</span>
-                                    </div>
-                                    <div class="time-progress-track">
-                                        <div class="time-progress-fill" style="width: @pct.ToString("F1")%; background-color: @progressColor;"></div>
-                                    </div>
-                                    @if (spentTime > estTime.Value)
-                                    {
-                                        <span class="time-over-limit-warning">⚠️ Ліміт оцінки часу перевищено!</span>
+                            <!-- Accordion Item: Time Tracking & Logs -->
+                            <div class="accordion-item @(isTimeTrackingExpanded ? "expanded" : "")">
+                                <div class="accordion-header" @onclick="ToggleTimeTrackingAccordion">
+                                    @{
+                                        double spentHours = Task.TimeLogs != null ? Task.TimeLogs.Sum(l => l.Hours) : 0;
                                     }
+                                    <span class="accordion-title">⏱️ Оцінка та витрачений час (@spentHours.ToString("F1") год)</span>
+                                    <Icon Name="@(isTimeTrackingExpanded ? "chevron-down" : "chevron-right")" Class="accordion-chevron" />
                                 </div>
-                            }
-                            else
-                            {
-                                <div class="time-progress-labels" style="margin-top: 8px;">
-                                    <span>Загальний витрачений час: <strong>@spentTime.ToString("F1") год</strong></span>
-                                </div>
-                            }
-
-                            @if (Task.TimeLogs != null && Task.TimeLogs.Any())
-                            {
-                                <div class="time-logs-history">
-                                    <h5>Історія витраченого часу:</h5>
-                                    <div class="time-logs-list">
-                                        @foreach (var log in Task.TimeLogs.OrderByDescending(l => l.LoggedAt))
-                                        {
-                                            <div class="time-log-row">
-                                                <div class="time-log-user-avatar" style="background-color: var(--accent-primary)">
-                                                    @(log.User.Length > 0 ? log.User[0].ToString() : "?")
+                                @if (isTimeTrackingExpanded)
+                                {
+                                    <div class="accordion-body">
+                                        <div class="time-tracking-section">
+                                            <div class="time-inputs-row">
+                                                <div class="form-group time-est-group">
+                                                    <label>Оцінка (годин)</label>
+                                                    <input type="number" step="0.5" min="0" class="form-input" @bind="Task.TimeEstimate" placeholder="напр. 8" />
                                                 </div>
-                                                <div class="time-log-content">
-                                                    <div class="time-log-meta">
-                                                        <strong>@log.User</strong> logged <strong>@log.Hours.ToString("F1") год</strong>
-                                                        <span class="time-log-date">@log.LoggedAt.ToString("g")</span>
+
+                                                <div class="time-log-form">
+                                                    <label>Логувати час</label>
+                                                    <div class="time-log-inputs">
+                                                        <input type="number" step="0.25" min="0.1" class="form-input log-hours-input" @bind="newLogHours" placeholder="Години (напр. 2)" />
+                                                        <input type="text" class="form-input log-note-input" @bind="newLogNote" placeholder="Коментар до логу..." />
+                                                        <button class="btn btn-secondary" type="button" @onclick="LogTime">Додати лог</button>
                                                     </div>
-                                                    @if (!string.IsNullOrEmpty(log.Note))
+                                                </div>
+                                            </div>
+
+                                            @{
+                                                double spentTime = Task.TimeLogs != null ? Task.TimeLogs.Sum(l => l.Hours) : 0;
+                                                double? estTime = Task.TimeEstimate;
+                                            }
+
+                                            @if (estTime.HasValue && estTime.Value > 0)
+                                            {
+                                                var pct = Math.Min(100.0, (spentTime / estTime.Value) * 100);
+                                                var progressColor = spentTime > estTime.Value ? "var(--priority-urgent)" : "var(--accent-primary)";
+                                                <div class="time-progress-bar-container">
+                                                    <div class="time-progress-labels">
+                                                        <span>Прогрес виконання: @pct.ToString("F0")%</span>
+                                                        <span>@spentTime.ToString("F1") год / @estTime.Value.ToString("F1") год</span>
+                                                    </div>
+                                                    <div class="time-progress-track">
+                                                        <div class="time-progress-fill" style="width: @pct.ToString("F1")%; background-color: @progressColor;"></div>
+                                                    </div>
+                                                    @if (spentTime > estTime.Value)
                                                     {
-                                                        <div class="time-log-note">« @log.Note »</div>
+                                                        <span class="time-over-limit-warning">⚠️ Ліміт оцінки часу перевищено!</span>
                                                     }
                                                 </div>
-                                                <button class="time-log-remove-btn" type="button" @onclick="() => RemoveTimeLog(log.Id)">×</button>
-                                            </div>
-                                        }
+                                            }
+                                            else
+                                            {
+                                                <div class="time-progress-labels" style="margin-top: 8px;">
+                                                    <span>Загальний витрачений час: <strong>@spentTime.ToString("F1") год</strong></span>
+                                                </div>
+                                            }
+
+                                            @if (Task.TimeLogs != null && Task.TimeLogs.Any())
+                                            {
+                                                <div class="time-logs-history">
+                                                    <h5>Історія витраченого часу:</h5>
+                                                    <div class="time-logs-list">
+                                                        @foreach (var log in Task.TimeLogs.OrderByDescending(l => l.LoggedAt))
+                                                        {
+                                                            <div class="time-log-row">
+                                                                <div class="time-log-user-avatar" style="background-color: var(--accent-primary)">
+                                                                    @(log.User.Length > 0 ? log.User[0].ToString() : "?")
+                                                                </div>
+                                                                <div class="time-log-content">
+                                                                    <div class="time-log-meta">
+                                                                        <strong>@log.User</strong> logged <strong>@log.Hours.ToString("F1") год</strong>
+                                                                        <span class="time-log-date">@log.LoggedAt.ToString("g")</span>
+                                                                    </div>
+                                                                    @if (!string.IsNullOrEmpty(log.Note))
+                                                                    {
+                                                                        <div class="time-log-note">« @log.Note »</div>
+                                                                    }
+                                                                </div>
+                                                                <button class="time-log-remove-btn" type="button" @onclick="() => RemoveTimeLog(log.Id)">×</button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
                                     </div>
-                                </div>
-                            }
+                                }
+                            </div>
                         </div>
 
                         <!-- Subtasks list (inline) -->
@@ -417,9 +484,68 @@
     private string newLogNote = "";
     private string newCommentText = "";
     private Guid lastTaskId;
-    private List<TaskItem> taskNavigationStack = new();
+    
     private bool isUploadingFile = false;
     private string? activeLightboxImage;
+
+    // Accordions and editor state
+    private bool isTagsExpanded = false;
+    private bool isTimeTrackingExpanded = false;
+    private bool isEditingDescription = false;
+
+    private void ToggleTagsAccordion()
+    {
+        isTagsExpanded = !isTagsExpanded;
+    }
+
+    private void ToggleTimeTrackingAccordion()
+    {
+        isTimeTrackingExpanded = !isTimeTrackingExpanded;
+    }
+
+    private void StartEditingDescription()
+    {
+        isEditingDescription = true;
+    }
+
+    private async Task FinishEditingDescription()
+    {
+        isEditingDescription = false;
+        if (!IsNewTask)
+        {
+            await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+        }
+    }
+
+    private async Task ApplyFormat(string openTag, string closeTag)
+    {
+        var newVal = await JSRuntime.InvokeAsync<string>("insertTextAtCursor", "task-description-textarea", openTag, closeTag);
+        if (!string.IsNullOrEmpty(newVal))
+        {
+            Task.Description = newVal;
+        }
+    }
+
+    private List<TaskItem> GetTaskBreadcrumbs()
+    {
+        var breadcrumbs = new List<TaskItem>();
+        if (Task == null) return breadcrumbs;
+        
+        var current = Task;
+        while (current != null)
+        {
+            breadcrumbs.Insert(0, current);
+            if (current.ParentTaskId.HasValue)
+            {
+                current = AllTasks.FirstOrDefault(t => t.Id == current.ParentTaskId.Value);
+            }
+            else
+            {
+                current = null;
+            }
+        }
+        return breadcrumbs;
+    }
 
     private string GetAttachmentUrl(string path)
     {
@@ -439,7 +565,13 @@
     RenderFragment RenderTreeNode(TaskItem nodeTask, int depth) => @<div class="tree-node-wrapper" style="--depth: @depth">
         <div class="tree-node-row @(nodeTask.Id == Task.Id ? "is-current" : "")" @onclick="() => NavigateToTask(nodeTask)">
             <span class="tree-node-icon">📄</span>
-            <span class="tree-node-title" title="@nodeTask.Title">@nodeTask.Title</span>
+            <span class="tree-node-title" title="@nodeTask.Title">
+                @if (!string.IsNullOrEmpty(nodeTask.TaskSeqId))
+                {
+                    <span class="tree-node-seq-id" style="color: var(--text-muted); font-size: 0.85rem; margin-right: 4px;">@nodeTask.TaskSeqId</span>
+                }
+                @nodeTask.Title
+            </span>
             <span class="tree-node-status status-@nodeTask.Status.ToString().ToLower()">@GetStatusDisplayName(nodeTask.Status)</span>
         </div>
         @{
@@ -472,31 +604,25 @@
     {
         if (IsOpen && Task != null && Task.Id != lastTaskId)
         {
-            taskNavigationStack.Clear();
-            taskNavigationStack.Add(Task);
             lastTaskId = Task.Id;
+            isEditingDescription = false;
+            isTagsExpanded = false;
+            isTimeTrackingExpanded = false;
         }
     }
 
     private async Task NavigateToTask(TaskItem targetTask)
     {
-        // Save current task changes first
         if (!IsNewTask && !string.IsNullOrWhiteSpace(Task.Title))
         {
             await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
         }
 
-        var index = taskNavigationStack.IndexOf(targetTask);
-        if (index >= 0)
-        {
-            taskNavigationStack = taskNavigationStack.Take(index + 1).ToList();
-        }
-        else
-        {
-            taskNavigationStack.Add(targetTask);
-        }
         Task = targetTask;
         lastTaskId = targetTask.Id;
+        isEditingDescription = false;
+        isTagsExpanded = false;
+        isTimeTrackingExpanded = false;
         await TaskChanged.InvokeAsync(targetTask);
         await OnRefreshData.InvokeAsync();
     }
@@ -580,7 +706,6 @@
         newLogHours = null;
         newLogNote = "";
 
-        // Save immediately to preserve logs
         await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
         await OnRefreshData.InvokeAsync();
     }
@@ -669,7 +794,6 @@
         
         newCommentText = "";
 
-        // Save immediately to preserve comments
         await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
         await OnRefreshData.InvokeAsync();
     }
@@ -717,26 +841,6 @@
             TaskCompletionStatus.Done => "Done",
             _ => status.ToString()
         };
-    }
-
-    private string GetInitials(string? assignee)
-    {
-        if (string.IsNullOrWhiteSpace(assignee)) return "";
-        var name = assignee.Split('(')[0].Trim();
-        var parts = name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0) return "";
-        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
-        return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
-    }
-
-    private string GetAssigneeClass(string? assignee)
-    {
-        if (string.IsNullOrWhiteSpace(assignee)) return "";
-        if (assignee.Contains("Розробник") || assignee.Contains("Developer")) return "assignee-dev";
-        if (assignee.Contains("Тестувальник") || assignee.Contains("QA")) return "assignee-qa";
-        if (assignee.Contains("Дизайнер") || assignee.Contains("Designer")) return "assignee-designer";
-        if (assignee.Contains("Manager") || assignee.Contains("Олена")) return "assignee-pm";
-        return "assignee-default";
     }
 
     private class UploadResponse

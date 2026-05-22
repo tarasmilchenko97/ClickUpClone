@@ -28,7 +28,37 @@ public class WorkspaceController : ControllerBase
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public ActionResult<WorkspaceData> GetTree()
     {
-        return Ok(_dbService.ReadData());
+        var data = _dbService.ReadData();
+        bool changed = false;
+
+        int maxSeq = 0;
+        foreach (var task in data.Tasks)
+        {
+            if (!string.IsNullOrEmpty(task.TaskSeqId) && task.TaskSeqId.StartsWith("TASK-"))
+            {
+                if (int.TryParse(task.TaskSeqId.Substring(5), out int val))
+                {
+                    if (val > maxSeq) maxSeq = val;
+                }
+            }
+        }
+
+        foreach (var task in data.Tasks)
+        {
+            if (string.IsNullOrEmpty(task.TaskSeqId))
+            {
+                maxSeq++;
+                task.TaskSeqId = $"TASK-{maxSeq}";
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            _dbService.WriteData(data);
+        }
+
+        return Ok(data);
     }
 
     [HttpPost("nodes")]
@@ -226,6 +256,22 @@ public class WorkspaceController : ControllerBase
         {
             return BadRequest("Вказаний список не існує.");
         }
+
+        // Generate TaskSeqId
+        int nextId = 1;
+        if (data.Tasks.Count > 0)
+        {
+            var seqNumbers = data.Tasks
+                .Select(t => t.TaskSeqId)
+                .Where(s => !string.IsNullOrEmpty(s) && s.StartsWith("TASK-"))
+                .Select(s => int.TryParse(s.Substring(5), out int val) ? val : 0)
+                .ToList();
+            if (seqNumbers.Any())
+            {
+                nextId = seqNumbers.Max() + 1;
+            }
+        }
+        task.TaskSeqId = $"TASK-{nextId}";
 
         task.Id = Guid.NewGuid();
         data.Tasks.Add(task);

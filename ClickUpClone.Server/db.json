@@ -117,7 +117,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-1"
     },
     {
       "Id": "65b42f3a-18b5-4b1f-ae22-54ff22acb927",
@@ -135,13 +136,14 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-2"
     },
     {
       "Id": "1b9dfce8-8b9a-4ad9-bf93-68d87ef8ff12",
       "ListId": "fa9efd6f-7634-4364-8840-7e3e29f3d9ad",
       "Title": "\u0412\u0435\u0440\u0441\u0442\u043A\u0430 \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438",
-      "Description": "\u0417\u0432\u0435\u0440\u0441\u0442\u0430\u0442\u0438 \u0430\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u0438\u0439 \u0434\u0438\u0437\u0430\u0439\u043D \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u0456 \u043C\u0430\u043A\u0435\u0442\u0443 Figma. ",
+      "Description": "\u003Cb\u003E\u0417\u0432\u0435\u0440\u0441\u0442\u0430\u0442\u0438 \u0430\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u0438\u0439 \u0434\u0438\u0437\u0430\u0439\u043D \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u0456 \u043C\u0430\u043A\u0435\u0442\u0443 Figma. \u003C/b\u003E",
       "Status": "ToDo",
       "Priority": "Urgent",
       "DueDate": "2026-05-25T00:00:00Z",
@@ -186,7 +188,8 @@
           "Content": "\u043F\u043E\u0440\u043F",
           "CreatedAt": "2026-05-22T04:05:11.837Z"
         }
-      ]
+      ],
+      "TaskSeqId": "TASK-3"
     },
     {
       "Id": "6b149d29-3fd7-49a5-a595-e6623a0bc564",
@@ -205,7 +208,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-4"
     },
     {
       "Id": "ef9b012f-8d2b-41cf-b74f-d2866cfc6751",
@@ -221,7 +225,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-5"
     },
     {
       "Id": "753e513d-1706-4a21-a673-c54d906a9a66",
@@ -237,7 +242,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-6"
     },
     {
       "Id": "1b1f1407-3025-4268-a90d-0dccec295b4d",
@@ -253,7 +259,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-7"
     },
     {
       "Id": "efef912a-5852-481d-abfe-e8ab23823ff9",
@@ -269,7 +276,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-8"
     },
     {
       "Id": "e0c0cb38-50a6-403a-9ed2-5e68f3620e51",
@@ -285,7 +293,8 @@
       "TimeEstimate": null,
       "TimeLogs": [],
       "Attachments": [],
-      "Comments": []
+      "Comments": [],
+      "TaskSeqId": "TASK-9"
     },
     {
       "Id": "5bb516ec-141b-4999-9600-aec4da51f3c9",
@@ -311,7 +320,8 @@
           "Content": "\u043A\u043E\u043C\u0435\u043D\u0442",
           "CreatedAt": "2026-05-22T04:07:00.281Z"
         }
-      ]
+      ],
+      "TaskSeqId": "TASK-10"
     }
   ]
 }

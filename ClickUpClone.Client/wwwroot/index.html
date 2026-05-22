@@ -27,6 +27,26 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        window.insertTextAtCursor = function (elementId, openTag, closeTag) {
+            var el = document.getElementById(elementId);
+            if (!el) return "";
+            var start = el.selectionStart;
+            var end = el.selectionEnd;
+            var text = el.value;
+            var selectedText = text.substring(start, end);
+            var replacement = openTag + selectedText + closeTag;
+            el.value = text.substring(0, start) + replacement + text.substring(end);
+            el.focus();
+            el.selectionStart = start + openTag.length;
+            el.selectionEnd = start + openTag.length + selectedText.length;
+            
+            // Dispatch input event so Blazor @bind updates the value
+            var event = new Event('input', { bubbles: true });
+            el.dispatchEvent(event);
+            return el.value;
+        };
+    </script>
 </body>
 
 </html>
