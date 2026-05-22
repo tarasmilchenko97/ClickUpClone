@@ -1,0 +1,6 @@
+@ClickUpClone.Server_HostAddress = http://localhost:5048
+
+GET {{ClickUpClone.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

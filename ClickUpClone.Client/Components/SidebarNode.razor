@@ -1,0 +1,262 @@
+@using ClickUpClone.Shared.Models
+
+<div class="node-row-container">
+    <div class="node-dropzone dropzone-before @(isDragOverBefore ? "drag-over" : "")"
+         style="margin-left: @(Depth * 12 + 28)px"
+         @ondragover="HandleDragOverBefore"
+         @ondragover:preventDefault
+         @ondragleave="HandleDragLeaveBefore"
+         @ondrop="HandleDropBefore"></div>
+
+    <div class="node-row @(ActiveNodeId == Node.Id ? "active" : "") @(isDragOverBody ? "drag-over-body" : "")" 
+         style="padding-left: @(Depth * 12 + 8)px"
+         draggable="true"
+         @ondragstart="HandleDragStart"
+         @ondragover="HandleDragOverBody"
+         @ondragover:preventDefault
+         @ondragleave="HandleDragLeaveBody"
+         @ondrop="HandleDropBody"
+         @onclick="SelectNode">
+         
+        @if (HasChildren)
+        {
+            <div class="node-expander" @onclick:stopPropagation @onclick="ToggleExpand">
+                <Icon Name="@(isExpanded ? "chevron-down" : "chevron-right")" Class="icon-chevron" />
+            </div>
+        }
+        else
+        {
+            <div class="node-expander" style="visibility: hidden;"></div>
+        }
+
+        <div class="node-icon">
+            @if (Node.Type == NodeType.Space)
+            {
+                <Icon Name="space" Class="node-icon-space" />
+            }
+            else if (Node.Type == NodeType.Folder)
+            {
+                <Icon Name="folder" Class="node-icon-folder" />
+            }
+            else if (Node.Type == NodeType.List)
+            {
+                <Icon Name="list" Class="node-icon-list" />
+            }
+        </div>
+
+        <span class="node-name">@Node.Name</span>
+
+        <div class="node-actions" @onclick:stopPropagation>
+            @if (Node.Type != NodeType.List)
+            {
+                <button class="node-action-btn" title="Створити підпапку або список" @onclick="CreateChild">
+                    <Icon Name="plus" />
+                </button>
+            }
+            <button class="node-action-btn" title="Перейменувати" @onclick="RenameNode">
+                <Icon Name="edit" />
+            </button>
+            <button class="node-action-btn" title="Видалити" @onclick="DeleteNode">
+                <Icon Name="trash" />
+            </button>
+        </div>
+    </div>
+
+    @if (IsLastSibling())
+    {
+        <div class="node-dropzone dropzone-after @(isDragOverAfter ? "drag-over" : "")"
+             style="margin-left: @(Depth * 12 + 28)px"
+             @ondragover="HandleDragOverAfter"
+             @ondragover:preventDefault
+             @ondragleave="HandleDragLeaveAfter"
+             @ondrop="HandleDropAfter"></div>
+    }
+
+    @if (isExpanded && HasChildren)
+    {
+        @foreach (var child in GetChildren())
+        {
+            <SidebarNode Node="child"
+                         AllNodes="AllNodes"
+                         ActiveNodeId="ActiveNodeId"
+                         OnSelectNode="OnSelectNode"
+                         OnCreateChildNode="OnCreateChildNode"
+                         OnRenameNode="OnRenameNode"
+                         OnDeleteNode="OnDeleteNode"
+                         OnMoveNode="OnMoveNode"
+                         Depth="Depth + 1" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public HierarchyNode Node { get; set; } = null!;
+    [Parameter] public List<HierarchyNode> AllNodes { get; set; } = new();
+    [Parameter] public Guid? ActiveNodeId { get; set; }
+    [Parameter] public EventCallback<HierarchyNode> OnSelectNode { get; set; }
+    [Parameter] public EventCallback<HierarchyNode> OnCreateChildNode { get; set; }
+    [Parameter] public EventCallback<HierarchyNode> OnRenameNode { get; set; }
+    [Parameter] public EventCallback<HierarchyNode> OnDeleteNode { get; set; }
+    [Parameter] public EventCallback<(HierarchyNode DraggedNode, Guid? ParentId, Guid? TargetNodeId, bool Before)> OnMoveNode { get; set; }
+    [Parameter] public int Depth { get; set; } = 0;
+
+    public static HierarchyNode? DraggedNode { get; set; }
+
+    private bool isExpanded = true;
+    private bool isDragOverBefore;
+    private bool isDragOverBody;
+    private bool isDragOverAfter;
+
+    private bool HasChildren => AllNodes.Any(n => n.ParentId == Node.Id);
+
+    private List<HierarchyNode> GetChildren()
+    {
+        return AllNodes.Where(n => n.ParentId == Node.Id)
+                       .OrderBy(n => n.SortOrder)
+                       .ThenBy(n => n.Type)
+                       .ThenBy(n => n.Name)
+                       .ToList();
+    }
+
+    private void ToggleExpand()
+    {
+        isExpanded = !isExpanded;
+    }
+
+    private async Task SelectNode()
+    {
+        await OnSelectNode.InvokeAsync(Node);
+    }
+
+    private async Task CreateChild()
+    {
+        await OnCreateChildNode.InvokeAsync(Node);
+    }
+
+    private async Task RenameNode()
+    {
+        await OnRenameNode.InvokeAsync(Node);
+    }
+
+    private async Task DeleteNode()
+    {
+        await OnDeleteNode.InvokeAsync(Node);
+    }
+
+    private void HandleDragStart()
+    {
+        DraggedNode = Node;
+    }
+
+    private bool CanDropOnBody()
+    {
+        if (DraggedNode == null) return false;
+        if (DraggedNode.Id == Node.Id) return false;
+        if (Node.Type == NodeType.List) return false;
+        if (DraggedNode.Type == NodeType.Space) return false; // Spaces are top-level
+        if (IsDescendantOf(DraggedNode.Id, Node.Id)) return false;
+        return true;
+    }
+
+    private bool CanDropBeforeOrAfter()
+    {
+        if (DraggedNode == null) return false;
+        if (DraggedNode.Id == Node.Id) return false;
+        if (IsDescendantOf(DraggedNode.Id, Node.Id)) return false;
+        
+        // Spaces must remain top-level (ParentId == null)
+        if (DraggedNode.Type == NodeType.Space && Node.ParentId != null) return false;
+        
+        return true;
+    }
+
+    private bool IsDescendantOf(Guid parentId, Guid childId)
+    {
+        var current = AllNodes.FirstOrDefault(n => n.Id == childId);
+        while (current != null)
+        {
+            if (current.ParentId == parentId) return true;
+            current = AllNodes.FirstOrDefault(n => n.Id == current.ParentId);
+        }
+        return false;
+    }
+
+    private bool IsLastSibling()
+    {
+        var siblings = AllNodes.Where(n => n.ParentId == Node.ParentId)
+                               .OrderBy(n => n.SortOrder)
+                               .ThenBy(n => n.Type)
+                               .ThenBy(n => n.Name)
+                               .ToList();
+        return siblings.Any() && siblings.Last().Id == Node.Id;
+    }
+
+    private void HandleDragOverBefore()
+    {
+        if (CanDropBeforeOrAfter())
+        {
+            isDragOverBefore = true;
+        }
+    }
+
+    private void HandleDragLeaveBefore()
+    {
+        isDragOverBefore = false;
+    }
+
+    private async Task HandleDropBefore()
+    {
+        isDragOverBefore = false;
+        if (CanDropBeforeOrAfter() && DraggedNode != null)
+        {
+            await OnMoveNode.InvokeAsync((DraggedNode, Node.ParentId, Node.Id, true));
+            DraggedNode = null;
+        }
+    }
+
+    private void HandleDragOverBody()
+    {
+        if (CanDropOnBody())
+        {
+            isDragOverBody = true;
+        }
+    }
+
+    private void HandleDragLeaveBody()
+    {
+        isDragOverBody = false;
+    }
+
+    private async Task HandleDropBody()
+    {
+        isDragOverBody = false;
+        if (CanDropOnBody() && DraggedNode != null)
+        {
+            await OnMoveNode.InvokeAsync((DraggedNode, Node.Id, null, false));
+            DraggedNode = null;
+        }
+    }
+
+    private void HandleDragOverAfter()
+    {
+        if (CanDropBeforeOrAfter())
+        {
+            isDragOverAfter = true;
+        }
+    }
+
+    private void HandleDragLeaveAfter()
+    {
+        isDragOverAfter = false;
+    }
+
+    private async Task HandleDropAfter()
+    {
+        isDragOverAfter = false;
+        if (CanDropBeforeOrAfter() && DraggedNode != null)
+        {
+            await OnMoveNode.InvokeAsync((DraggedNode, Node.ParentId, Node.Id, false));
+            DraggedNode = null;
+        }
+    }
+}

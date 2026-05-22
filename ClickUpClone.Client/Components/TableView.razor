@@ -1,0 +1,409 @@
+@using ClickUpClone.Shared.Models
+
+<div class="view-wrapper">
+    <div class="view-controls-bar">
+        <div class="view-controls-left">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="header-search-input" placeholder="Пошук за назвою..." value="@SearchQuery" @oninput="OnSearchInput" />
+                @if (!string.IsNullOrEmpty(SearchQuery))
+                {
+                    <button class="search-clear-btn" @onclick="ClearSearch">×</button>
+                }
+            </div>
+
+            <select class="header-filter-select" value="@TaskTypeFilter" @onchange="OnFilterChange">
+                <option value="all">Усі завдання</option>
+                <option value="main">Тільки головні</option>
+                <option value="subtask">Тільки підзадачі</option>
+            </select>
+        </div>
+        
+        <div class="view-controls-right">
+            @if (ActiveNode?.Type == NodeType.List)
+            {
+                <button class="btn btn-primary" @onclick="() => TriggerAddTask(TaskCompletionStatus.ToDo)">
+                    + Додати завдання
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="table-view-container">
+        @if (!GetSortedTasks().Any())
+    {
+        <div class="table-view-empty">Немає завдань. Створіть завдання, щоб побачити його в таблиці!</div>
+    }
+    else
+    {
+        <table class="grid-table">
+            <thead>
+                <tr>
+                    <th class="sortable" @onclick='() => SortByColumn("Title")'>
+                        Назва @((sortBy == "Title") ? (isAscending ? " ▲" : " ▼") : "")
+                    </th>
+                    <th class="sortable" @onclick='() => SortByColumn("Status")'>
+                        Статус @((sortBy == "Status") ? (isAscending ? " ▲" : " ▼") : "")
+                    </th>
+                    <th>Виконавець</th>
+                    <th class="sortable" @onclick='() => SortByColumn("Priority")'>
+                        Пріоритет @((sortBy == "Priority") ? (isAscending ? " ▲" : " ▼") : "")
+                    </th>
+                    <th class="sortable" @onclick='() => SortByColumn("DueDate")'>
+                        Кінцевий термін @((sortBy == "DueDate") ? (isAscending ? " ▲" : " ▼") : "")
+                    </th>
+                    <th>Теги</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var task in GetSortedTasks())
+                {
+                    var subtasks = (TaskTypeFilter == "subtask" || !string.IsNullOrWhiteSpace(SearchQuery))
+                        ? new List<TaskItem>()
+                        : AllTasks.Where(t => t.ParentTaskId == task.Id).ToList();
+                    var isExpanded = expandedTasks.GetValueOrDefault(task.Id, false);
+
+                    <tr class="grid-row main-task-row" @onclick="() => EditTask(task)">
+                        <td>
+                            <div class="title-cell">
+                                @if (subtasks.Any())
+                                {
+                                    <button class="subtask-toggle-btn" @onclick:stopPropagation @onclick="() => ToggleTaskExpansion(task.Id)">
+                                        <Icon Name="@(isExpanded ? "chevron-down" : "chevron-right")" />
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="subtask-spacer"></span>
+                                }
+                                <span class="task-title-text">
+                                    @if (task.ParentTaskId != null)
+                                    {
+                                        <span class="subtask-badge-icon" title="Підзадача" style="color: var(--text-muted); margin-right: 6px;">⮑</span>
+                                    }
+                                    @task.Title
+                                </span>
+                                @if (subtasks.Any())
+                                {
+                                    <span class="subtask-count-badge" title="Кількість підзавдань">
+                                        <Icon Name="subtask" /> @subtasks.Count
+                                    </span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <span class="subtask-status-badge @task.Status.ToString().ToLower()">
+                                @GetStatusDisplayName(task.Status)
+                            </span>
+                        </td>
+                        <td @onclick:stopPropagation>
+                            @if (!string.IsNullOrEmpty(task.Assignee))
+                            {
+                                <div class="assignee-avatar @GetAssigneeClass(task.Assignee)" title="@task.Assignee">
+                                    @GetInitials(task.Assignee)
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color: var(--text-muted);">—</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="priority-badge @task.Priority.ToString()">@GetPriorityDisplayName(task.Priority)</span>
+                        </td>
+                        <td>
+                            @if (task.DueDate.HasValue)
+                            {
+                                var isOverdue = task.DueDate.Value.Date < DateTime.Today && task.Status != TaskCompletionStatus.Done;
+                                <span class="due-date-badge @(isOverdue ? "overdue" : "")">
+                                    @task.DueDate.Value.ToString("dd MMM yyyy")
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="color: var(--text-muted);">—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (task.Tags != null && task.Tags.Any())
+                            {
+                                <div class="task-tags">
+                                    @foreach (var tag in task.Tags)
+                                    {
+                                        <span class="tag-pill">@tag</span>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color: var(--text-muted);">—</span>
+                            }
+                        </td>
+                    </tr>
+
+                    @if (isExpanded && subtasks.Any())
+                    {
+                        @foreach (var sub in subtasks)
+                        {
+                            <tr class="grid-row sub-task-row" @onclick="() => EditTask(sub)">
+                                <td style="padding-left: 28px;">
+                                    <div class="title-cell">
+                                        <Icon Name="subtask" Class="subtask-indent-icon" />
+                                        <span class="task-title-text">@sub.Title</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="subtask-status-badge @sub.Status.ToString().ToLower()">
+                                        @GetStatusDisplayName(sub.Status)
+                                    </span>
+                                </td>
+                                <td @onclick:stopPropagation>
+                                    @if (!string.IsNullOrEmpty(sub.Assignee))
+                                    {
+                                        <div class="assignee-avatar @GetAssigneeClass(sub.Assignee)" title="@sub.Assignee">
+                                            @GetInitials(sub.Assignee)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: var(--text-muted);">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="priority-badge @sub.Priority.ToString()">@GetPriorityDisplayName(sub.Priority)</span>
+                                </td>
+                                <td>
+                                    @if (sub.DueDate.HasValue)
+                                    {
+                                        var isOverdue = sub.DueDate.Value.Date < DateTime.Today && sub.Status != TaskCompletionStatus.Done;
+                                        <span class="due-date-badge @(isOverdue ? "overdue" : "")">
+                                            @sub.DueDate.Value.ToString("dd MMM yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: var(--text-muted);">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (sub.Tags != null && sub.Tags.Any())
+                                    {
+                                        <div class="task-tags">
+                                            @foreach (var tag in sub.Tags)
+                                            {
+                                                <span class="tag-pill">@tag</span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span style="color: var(--text-muted);">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                }
+            </tbody>
+        </table>
+    }
+</div>
+</div>
+
+@code {
+    [Parameter] public HierarchyNode? ActiveNode { get; set; }
+    [Parameter] public List<HierarchyNode> AllNodes { get; set; } = new();
+    [Parameter] public List<TaskItem> AllTasks { get; set; } = new();
+    [Parameter] public string SearchQuery { get; set; } = "";
+    [Parameter] public EventCallback<string> SearchQueryChanged { get; set; }
+    [Parameter] public string TaskTypeFilter { get; set; } = "all";
+    [Parameter] public EventCallback<string> TaskTypeFilterChanged { get; set; }
+    [Parameter] public EventCallback<TaskItem> OnEditTask { get; set; }
+    [Parameter] public EventCallback<TaskCompletionStatus> OnAddTask { get; set; }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchQuery = e.Value?.ToString() ?? "";
+        await SearchQueryChanged.InvokeAsync(SearchQuery);
+    }
+
+    private async Task ClearSearch()
+    {
+        SearchQuery = "";
+        await SearchQueryChanged.InvokeAsync(SearchQuery);
+    }
+
+    private async Task OnFilterChange(ChangeEventArgs e)
+    {
+        TaskTypeFilter = e.Value?.ToString() ?? "all";
+        await TaskTypeFilterChanged.InvokeAsync(TaskTypeFilter);
+    }
+
+    private async Task TriggerAddTask(TaskCompletionStatus status)
+    {
+        await OnAddTask.InvokeAsync(status);
+    }
+
+    private string sortBy = "DueDate";
+    private bool isAscending = true;
+    private Dictionary<Guid, bool> expandedTasks = new();
+
+    private void SortByColumn(string column)
+    {
+        if (sortBy == column)
+        {
+            isAscending = !isAscending;
+        }
+        else
+        {
+            sortBy = column;
+            isAscending = true;
+        }
+    }
+
+    private List<TaskItem> GetSortedTasks()
+    {
+        if (ActiveNode == null) return new();
+
+        List<TaskItem> rawTasks;
+        if (ActiveNode.Type == NodeType.List)
+        {
+            rawTasks = AllTasks.Where(t => t.ListId == ActiveNode.Id).ToList();
+        }
+        else
+        {
+            var listIds = new HashSet<Guid>();
+            GetChildListIds(ActiveNode.Id, listIds);
+            rawTasks = AllTasks.Where(t => listIds.Contains(t.ListId)).ToList();
+        }
+
+        // Apply task type filter:
+        if (TaskTypeFilter == "main")
+        {
+            rawTasks = rawTasks.Where(t => t.ParentTaskId == null).ToList();
+        }
+        else if (TaskTypeFilter == "subtask")
+        {
+            rawTasks = rawTasks.Where(t => t.ParentTaskId != null).ToList();
+        }
+        else
+        {
+            // For "all", if there's a search query, show both flat.
+            // If there's no search query, show only main tasks at top level by default
+            if (string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                rawTasks = rawTasks.Where(t => t.ParentTaskId == null).ToList();
+            }
+        }
+
+        // Apply search query:
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            rawTasks = rawTasks.Where(t => t.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        var sortedTasks = rawTasks;
+
+        if (sortBy == "Title")
+        {
+            sortedTasks = isAscending ? sortedTasks.OrderBy(t => t.Title).ToList() : sortedTasks.OrderByDescending(t => t.Title).ToList();
+        }
+        else if (sortBy == "Priority")
+        {
+            sortedTasks = isAscending ? sortedTasks.OrderBy(t => t.Priority).ToList() : sortedTasks.OrderByDescending(t => t.Priority).ToList();
+        }
+        else if (sortBy == "DueDate")
+        {
+            sortedTasks = isAscending 
+                ? sortedTasks.OrderBy(t => t.DueDate ?? DateTime.MaxValue).ToList() 
+                : sortedTasks.OrderByDescending(t => t.DueDate ?? DateTime.MinValue).ToList();
+        }
+        else if (sortBy == "Status")
+        {
+            sortedTasks = isAscending ? sortedTasks.OrderBy(t => t.Status).ToList() : sortedTasks.OrderByDescending(t => t.Status).ToList();
+        }
+
+        return sortedTasks.ToList();
+    }
+
+    private void GetChildListIds(Guid parentId, HashSet<Guid> listIds)
+    {
+        var children = AllNodes.Where(n => n.ParentId == parentId).ToList();
+        foreach (var child in children)
+        {
+            if (child.Type == NodeType.List)
+            {
+                listIds.Add(child.Id);
+            }
+            else
+            {
+                GetChildListIds(child.Id, listIds);
+            }
+        }
+    }
+
+    private void ToggleTaskExpansion(Guid taskId)
+    {
+        if (expandedTasks.ContainsKey(taskId))
+        {
+            expandedTasks[taskId] = !expandedTasks[taskId];
+        }
+        else
+        {
+            expandedTasks[taskId] = true;
+        }
+    }
+
+    private async Task EditTask(TaskItem task)
+    {
+        await OnEditTask.InvokeAsync(task);
+    }
+
+    private string GetStatusDisplayName(TaskCompletionStatus status)
+    {
+        return status switch
+        {
+            TaskCompletionStatus.ToDo => "To Do",
+            TaskCompletionStatus.ReadyForDevelopment => "Ready for Dev",
+            TaskCompletionStatus.InProgress => "In Progress",
+            TaskCompletionStatus.InReview => "In Review",
+            TaskCompletionStatus.ReadyForTesting => "Ready for Test",
+            TaskCompletionStatus.InTesting => "In Testing",
+            TaskCompletionStatus.Tested => "Tested",
+            TaskCompletionStatus.Done => "Done",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetPriorityDisplayName(TaskPriority priority)
+    {
+        return priority switch
+        {
+            TaskPriority.Urgent => "Urgent",
+            TaskPriority.High => "High",
+            TaskPriority.Normal => "Normal",
+            TaskPriority.Low => "Low",
+            _ => priority.ToString()
+        };
+    }
+
+    private string GetInitials(string? assignee)
+    {
+        if (string.IsNullOrWhiteSpace(assignee)) return "";
+        var name = assignee.Split('(')[0].Trim();
+        var parts = name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+    }
+
+    private string GetAssigneeClass(string? assignee)
+    {
+        if (string.IsNullOrWhiteSpace(assignee)) return "";
+        if (assignee.Contains("Розробник") || assignee.Contains("Developer")) return "assignee-dev";
+        if (assignee.Contains("Тестувальник") || assignee.Contains("QA")) return "assignee-qa";
+        if (assignee.Contains("Дизайнер") || assignee.Contains("Designer")) return "assignee-designer";
+        if (assignee.Contains("Manager") || assignee.Contains("Олена")) return "assignee-pm";
+        return "assignee-default";
+    }
+}

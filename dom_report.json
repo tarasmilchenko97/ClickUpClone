@@ -1,0 +1,80 @@
+{
+  "initial_spaces": [
+    "Головний простір",
+    "Маркетинг та Дизайн",
+    "Соціальні мережі",
+    "Папка 33",
+    "Список 2",
+    "Контент-план на червень",
+    "Розробка сайту",
+    "Тест Тарас",
+    "Папка-папка",
+    "Список 23",
+    "Тест Тарас",
+    "ETS 2.0",
+    "Space_9391",
+    "Space_DOM_Check",
+    "Test Space Post",
+    "Space_DOM_Check"
+  ],
+  "final_spaces": [
+    "Головний простір",
+    "Маркетинг та Дизайн",
+    "Соціальні мережі",
+    "Папка 33",
+    "Список 2",
+    "Контент-план на червень",
+    "Розробка сайту",
+    "Тест Тарас",
+    "Папка-папка",
+    "Список 23",
+    "Тест Тарас",
+    "ETS 2.0",
+    "Space_9391",
+    "Space_DOM_Check",
+    "Test Space Post",
+    "Space_DOM_Check",
+    "Space_DOM_Check"
+  ],
+  "log_store": {
+    "console": [
+      {
+        "type": "startGroupCollapsed",
+        "text": "%cdotnet%c Loaded 10.44 MB resources%c\nThis application was built with linking (tree shaking) disabled. \nPublished applications will be significantly smaller if you install wasm-tools workload. \nSee also https://aka.ms/dotnet-wasm-features background: purple; color: white; padding: 1px 3px; border-radius: 3px; font-weight: bold; font-weight: normal;"
+      },
+      {
+        "type": "startGroupCollapsed",
+        "text": "Loaded 10.44 MB resources from network"
+      },
+      {
+        "type": "table",
+        "text": ""
+      },
+      {
+        "type": "endGroup",
+        "text": "console.groupEnd"
+      },
+      {
+        "type": "endGroup",
+        "text": "console.groupEnd"
+      },
+      {
+        "type": "info",
+        "text": "Debugging hotkey: Shift+Alt+D (when application has focus)"
+      }
+    ],
+    "exceptions": [],
+    "logs": [
+      {
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      }
+    ],
+    "network_errors": [
+      {
+        "url": "http://localhost:5029/ClickUpClone.Client.styles.css",
+        "status": 404
+      }
+    ]
+  }
+}

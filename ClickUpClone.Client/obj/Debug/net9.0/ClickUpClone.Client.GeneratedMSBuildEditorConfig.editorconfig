@@ -1,0 +1,73 @@
+is_global = true
+build_property.EnableAotAnalyzer = 
+build_property.EnableSingleFileAnalyzer = 
+build_property.EnableTrimAnalyzer = false
+build_property.IncludeAllContentForSelfExtract = 
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = browser
+build_property.RootNamespace = ClickUpClone.Client
+build_property.RootNamespace = ClickUpClone.Client
+build_property.ProjectDir = C:\Taras\Vibe Test\ClickUpClone.Client\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = false
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Taras\Vibe Test\ClickUpClone.Client
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/Icon.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xJY29uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/KanbanBoard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xLYW5iYW5Cb2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/ListView.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMaXN0Vmlldy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/PersonalCabinet.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQZXJzb25hbENhYmluZXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/SidebarNode.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xTaWRlYmFyTm9kZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/TableView.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xUYWJsZVZpZXcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Components/TaskModal.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xUYXNrTW9kYWwucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Taras/Vibe Test/ClickUpClone.Client/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 

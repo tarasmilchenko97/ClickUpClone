@@ -1,0 +1,128 @@
+@page "/login"
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="logo-icon">⚡</div>
+            <h2>ClickUp Clone</h2>
+            <p>Увійдіть у свій простір Midnight</p>
+        </div>
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="email">Електронна пошта</label>
+                <div class="input-container">
+                    <span class="input-icon">📧</span>
+                    <InputText id="email" @bind-Value="loginModel.Email" class="form-control" placeholder="username@clickup.com" />
+                </div>
+                <ValidationMessage For="@(() => loginModel.Email)" class="validation-error" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <div class="input-container">
+                    <span class="input-icon">🔒</span>
+                    <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" placeholder="••••••••" />
+                </div>
+                <ValidationMessage For="@(() => loginModel.Password)" class="validation-error" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    ⚠️ @errorMessage
+                </div>
+            }
+
+            <button type="submit" class="btn-submit" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner"></span> <span>Вхід...</span>
+                }
+                else
+                {
+                    <span>Увійти</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="quick-login">
+            <p class="quick-login-title">Швидкий вхід для тестування:</p>
+            <div class="quick-login-grid">
+                @foreach (var user in QuickUsers)
+                {
+                    <button type="button" class="quick-user-btn" @onclick="() => FillAndLogin(user.Email, user.Password)" style="--user-color: @user.Color">
+                        <span class="avatar-circle" style="background-color: @user.Color">@user.Name[0]</span>
+                        <div class="quick-user-info">
+                            <span class="quick-user-name">@user.Name</span>
+                            <span class="quick-user-role">@user.Role</span>
+                        </div>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string? errorMessage;
+    private bool isSubmitting = false;
+
+    private class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Поле E-mail є обов'язковим")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Некоректний формат E-mail")]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Поле Пароль є обов'язковим")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private class QuickUser
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+    }
+
+    private List<QuickUser> QuickUsers = new()
+    {
+        new() { Email = "oleksiy@clickup.com", Password = "developer", Name = "Олексій", Role = "Developer", Color = "#E0B0FF" },
+        new() { Email = "maria@clickup.com", Password = "qa", Name = "Марія", Role = "QA", Color = "#FF8C00" },
+        new() { Email = "ivan@clickup.com", Password = "designer", Name = "Іван", Role = "Designer", Color = "#1E90FF" },
+        new() { Email = "olena@clickup.com", Password = "pm", Name = "Олена", Role = "PM", Color = "#32CD32" },
+        new() { Email = "admin@clickup.com", Password = "admin", Name = "Адміністратор", Role = "Admin", Color = "#FF1493" }
+    };
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        isSubmitting = true;
+        
+        var success = await UserService.LoginAsync(loginModel.Email, loginModel.Password);
+        if (success)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Невірний email або пароль.";
+        }
+
+        isSubmitting = false;
+    }
+
+    private async Task FillAndLogin(string email, string password)
+    {
+        loginModel.Email = email;
+        loginModel.Password = password;
+        await HandleLogin();
+    }
+}

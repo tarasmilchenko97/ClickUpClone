@@ -1,0 +1,317 @@
+{
+  "Nodes": [
+    {
+      "Id": "e527d7fb-41a4-4f0f-80d5-cb005e8de57f",
+      "Name": "\u0413\u043E\u043B\u043E\u0432\u043D\u0438\u0439 \u043F\u0440\u043E\u0441\u0442\u0456\u0440",
+      "Type": "Space",
+      "ParentId": null,
+      "SortOrder": 0
+    },
+    {
+      "Id": "86884617-f6fe-4f10-9114-f56f4d2217c0",
+      "Name": "\u041C\u0430\u0440\u043A\u0435\u0442\u0438\u043D\u0433 \u0442\u0430 \u0414\u0438\u0437\u0430\u0439\u043D",
+      "Type": "Folder",
+      "ParentId": "e527d7fb-41a4-4f0f-80d5-cb005e8de57f",
+      "SortOrder": 1
+    },
+    {
+      "Id": "d37905f0-621f-4ee6-b9a3-5c8e0302ad9d",
+      "Name": "\u0421\u043E\u0446\u0456\u0430\u043B\u044C\u043D\u0456 \u043C\u0435\u0440\u0435\u0436\u0456",
+      "Type": "Folder",
+      "ParentId": "86884617-f6fe-4f10-9114-f56f4d2217c0",
+      "SortOrder": 1
+    },
+    {
+      "Id": "4f7e2a96-f94d-4be0-80bc-46761ab083c2",
+      "Name": "\u041A\u043E\u043D\u0442\u0435\u043D\u0442-\u043F\u043B\u0430\u043D \u043D\u0430 \u0447\u0435\u0440\u0432\u0435\u043D\u044C",
+      "Type": "List",
+      "ParentId": "d37905f0-621f-4ee6-b9a3-5c8e0302ad9d",
+      "SortOrder": 1
+    },
+    {
+      "Id": "fa9efd6f-7634-4364-8840-7e3e29f3d9ad",
+      "Name": "\u0420\u043E\u0437\u0440\u043E\u0431\u043A\u0430 \u0441\u0430\u0439\u0442\u0443",
+      "Type": "List",
+      "ParentId": "e527d7fb-41a4-4f0f-80d5-cb005e8de57f",
+      "SortOrder": 2
+    },
+    {
+      "Id": "63f18cfb-5991-4616-88e4-8556a2386be8",
+      "Name": "\u0422\u0435\u0441\u0442 \u0422\u0430\u0440\u0430\u0441",
+      "Type": "Space",
+      "ParentId": null,
+      "SortOrder": 0
+    },
+    {
+      "Id": "ebacb3e3-d92d-42fb-8c00-ea603f08d2eb",
+      "Name": "\u0422\u0435\u0441\u0442 \u0422\u0430\u0440\u0430\u0441",
+      "Type": "Space",
+      "ParentId": null,
+      "SortOrder": 0
+    },
+    {
+      "Id": "ba94cd3c-4f14-448b-8770-934f5798c5a2",
+      "Name": "Test Space Post",
+      "Type": "Space",
+      "ParentId": null,
+      "SortOrder": 0
+    },
+    {
+      "Id": "b31711ca-c6d0-4b87-ad97-d47538a23fa3",
+      "Name": "Space_DOM_Check",
+      "Type": "Space",
+      "ParentId": null,
+      "SortOrder": 0
+    },
+    {
+      "Id": "15a81105-c800-4d1f-8a58-e948271f9016",
+      "Name": "ETS 2.0",
+      "Type": "Space",
+      "ParentId": null,
+      "SortOrder": 0
+    },
+    {
+      "Id": "d55c1cf4-a116-4b87-a2f4-ba50b93ce6e9",
+      "Name": "\u041F\u0430\u043F\u043A\u0430 33",
+      "Type": "Folder",
+      "ParentId": "d37905f0-621f-4ee6-b9a3-5c8e0302ad9d",
+      "SortOrder": 2
+    },
+    {
+      "Id": "e16291b6-0dd5-46cd-aa23-3aa8f7eb1c8d",
+      "Name": "\u0421\u043F\u0438\u0441\u043E\u043A 2",
+      "Type": "List",
+      "ParentId": "d55c1cf4-a116-4b87-a2f4-ba50b93ce6e9",
+      "SortOrder": 1
+    },
+    {
+      "Id": "1e224fc8-719c-4a98-ac26-8dcb1ac9c4b0",
+      "Name": "\u041F\u0430\u043F\u043A\u0430-\u043F\u0430\u043F\u043A\u0430",
+      "Type": "Folder",
+      "ParentId": "63f18cfb-5991-4616-88e4-8556a2386be8",
+      "SortOrder": 0
+    },
+    {
+      "Id": "9070e43b-9cb3-4ab5-b4f9-8656c2a07e62",
+      "Name": "\u0421\u043F\u0438\u0441\u043E\u043A 23",
+      "Type": "List",
+      "ParentId": "1e224fc8-719c-4a98-ac26-8dcb1ac9c4b0",
+      "SortOrder": 0
+    }
+  ],
+  "Tasks": [
+    {
+      "Id": "32b21b79-5095-46f3-a3d8-a1496a798544",
+      "ListId": "4f7e2a96-f94d-4be0-80bc-46761ab083c2",
+      "Title": "\u041D\u0430\u043F\u0438\u0441\u0430\u0442\u0438 \u043F\u043E\u0441\u0442 \u043F\u0440\u043E \u0440\u0435\u043B\u0456\u0437 \u043D\u043E\u0432\u043E\u0457 \u0444\u0456\u0447\u0456",
+      "Description": "\u041F\u043E\u0442\u0440\u0456\u0431\u043D\u043E \u043F\u0456\u0434\u0433\u043E\u0442\u0443\u0432\u0430\u0442\u0438 \u043A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u0442\u0435\u043A\u0441\u0442 \u0442\u0430 \u043E\u0431\u0440\u0430\u0442\u0438 \u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u043D\u044F \u0434\u043B\u044F \u0430\u043D\u043E\u043D\u0441\u0443 \u0440\u0435\u043B\u0456\u0437\u0443.",
+      "Status": "InReview",
+      "Priority": "High",
+      "DueDate": "2026-06-01T12:00:00Z",
+      "Tags": [
+        "\u043C\u0430\u0440\u043A\u0435\u0442\u0438\u043D\u0433",
+        "\u0440\u0435\u043B\u0456\u0437"
+      ],
+      "ParentTaskId": null,
+      "Assignee": null,
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "65b42f3a-18b5-4b1f-ae22-54ff22acb927",
+      "ListId": "4f7e2a96-f94d-4be0-80bc-46761ab083c2",
+      "Title": "\u0410\u043D\u0430\u043B\u0456\u0437 \u043A\u043E\u043D\u043A\u0443\u0440\u0435\u043D\u0442\u0456\u0432 \u0443 \u0441\u043E\u0446\u043C\u0435\u0440\u0435\u0436\u0430\u0445",
+      "Description": "\u0421\u043A\u043B\u0430\u0441\u0442\u0438 \u0442\u0430\u0431\u043B\u0438\u0446\u044E \u0437 \u043E\u0441\u043D\u043E\u0432\u043D\u0438\u043C\u0438 \u043F\u043E\u043A\u0430\u0437\u043D\u0438\u043A\u0430\u043C\u0438 \u043A\u043E\u043D\u043A\u0443\u0440\u0435\u043D\u0442\u0456\u0432.",
+      "Status": "InProgress",
+      "Priority": "Normal",
+      "DueDate": "2026-06-05T18:00:00Z",
+      "Tags": [
+        "\u0434\u043E\u0441\u043B\u0456\u0434\u0436\u0435\u043D\u043D\u044F"
+      ],
+      "ParentTaskId": null,
+      "Assignee": null,
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "1b9dfce8-8b9a-4ad9-bf93-68d87ef8ff12",
+      "ListId": "fa9efd6f-7634-4364-8840-7e3e29f3d9ad",
+      "Title": "\u0412\u0435\u0440\u0441\u0442\u043A\u0430 \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438",
+      "Description": "\u0417\u0432\u0435\u0440\u0441\u0442\u0430\u0442\u0438 \u0430\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u0438\u0439 \u0434\u0438\u0437\u0430\u0439\u043D \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u0456 \u043C\u0430\u043A\u0435\u0442\u0443 Figma. ",
+      "Status": "ToDo",
+      "Priority": "Urgent",
+      "DueDate": "2026-05-25T00:00:00Z",
+      "Tags": [
+        "\u0434\u0438\u0437\u0430\u0439\u043D",
+        "\u0432\u0435\u0440\u0441\u0442\u043A\u0430"
+      ],
+      "ParentTaskId": null,
+      "Assignee": "\u041C\u0430\u0440\u0456\u044F (\u0422\u0435\u0441\u0442\u0443\u0432\u0430\u043B\u044C\u043D\u0438\u043A / QA)",
+      "TimeEstimate": null,
+      "TimeLogs": [
+        {
+          "Id": "93da7a42-8cf7-4665-b3f0-26634f59ef0a",
+          "User": "\u041E\u043B\u0435\u043A\u0441\u0456\u0439",
+          "Hours": 2.1,
+          "Note": "\u0440\u043E\u0437\u0440\u043E\u0431\u043A\u0430",
+          "LoggedAt": "2026-05-22T00:29:35.761Z"
+        }
+      ],
+      "Attachments": [
+        "/uploads/ac9e1197-142e-4ca6-902a-7bc765f6d2fc.jpg"
+      ],
+      "Comments": [
+        {
+          "Id": "ea2f91b3-78cf-4584-ae6e-1b0fca80d3b7",
+          "TaskId": "1b9dfce8-8b9a-4ad9-bf93-68d87ef8ff12",
+          "Author": "\u041E\u043B\u0435\u043A\u0441\u0456\u0439",
+          "Content": "\u0442\u0435\u0441\u0442 \u043A\u043E\u043C\u0435\u043D\u0442",
+          "CreatedAt": "2026-05-22T00:30:24.389Z"
+        },
+        {
+          "Id": "eb62e6d9-62e1-49cb-9eac-ad65c28d06a4",
+          "TaskId": "1b9dfce8-8b9a-4ad9-bf93-68d87ef8ff12",
+          "Author": "\u041E\u043B\u0435\u043A\u0441\u0456\u0439",
+          "Content": "\u0441\u0447\u043C\u0447\u0441\u043C",
+          "CreatedAt": "2026-05-22T03:34:27.377Z"
+        },
+        {
+          "Id": "5a96a7eb-f450-44ad-8928-ebd0ec0d0bc0",
+          "TaskId": "1b9dfce8-8b9a-4ad9-bf93-68d87ef8ff12",
+          "Author": "\u041C\u0430\u0440\u0456\u044F",
+          "Content": "\u043F\u043E\u0440\u043F",
+          "CreatedAt": "2026-05-22T04:05:11.837Z"
+        }
+      ]
+    },
+    {
+      "Id": "6b149d29-3fd7-49a5-a595-e6623a0bc564",
+      "ListId": "4f7e2a96-f94d-4be0-80bc-46761ab083c2",
+      "Title": "\u0422\u0435\u0441\u0442\u043E\u0432\u0430 \u0442\u0430\u0441\u043A\u0430",
+      "Description": "\u0442\u0440\u0435\u0431\u0430 \u0437\u0440\u043E\u0431\u0438\u0442\u044C \u0445\u0430\u0440\u0430\u0448\u043E",
+      "Status": "ToDo",
+      "Priority": "Urgent",
+      "DueDate": "2026-05-30T00:00:00",
+      "Tags": [
+        "bug",
+        "new task"
+      ],
+      "ParentTaskId": null,
+      "Assignee": "\u041E\u043B\u0435\u043A\u0441\u0456\u0439 (\u0420\u043E\u0437\u0440\u043E\u0431\u043D\u0438\u043A / Developer)",
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "ef9b012f-8d2b-41cf-b74f-d2866cfc6751",
+      "ListId": "e16291b6-0dd5-46cd-aa23-3aa8f7eb1c8d",
+      "Title": "\u0437\u0430\u0434\u0430\u0447\u0430 \u0432 \u043F\u0430\u043F\u0446\u0456 1",
+      "Description": "",
+      "Status": "InReview",
+      "Priority": "Normal",
+      "DueDate": null,
+      "Tags": [],
+      "ParentTaskId": null,
+      "Assignee": null,
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "753e513d-1706-4a21-a673-c54d906a9a66",
+      "ListId": "9070e43b-9cb3-4ab5-b4f9-8656c2a07e62",
+      "Title": "\u0417\u0430\u0434\u0430\u0447\u0430 \u0432 \u0441\u043F\u0438\u0441\u043A\u0443 23",
+      "Description": "\u0412\u043C\u043F\u0440\u0430\u0432\u0438\u0442\u0438 \u0431\u0430\u0433 ",
+      "Status": "ToDo",
+      "Priority": "Urgent",
+      "DueDate": "2026-05-24T00:00:00",
+      "Tags": [],
+      "ParentTaskId": null,
+      "Assignee": "\u041E\u043B\u0435\u043A\u0441\u0456\u0439 (\u0420\u043E\u0437\u0440\u043E\u0431\u043D\u0438\u043A / Developer)",
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "1b1f1407-3025-4268-a90d-0dccec295b4d",
+      "ListId": "fa9efd6f-7634-4364-8840-7e3e29f3d9ad",
+      "Title": "\u0421\u0430\u0431\u0442\u0430\u0441\u043A\u0430 \u0434\u043E \u0022\u0412\u0435\u0440\u0441\u0442\u043A\u0430 \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438\u0022",
+      "Description": "",
+      "Status": "ToDo",
+      "Priority": "Normal",
+      "DueDate": null,
+      "Tags": [],
+      "ParentTaskId": "1b9dfce8-8b9a-4ad9-bf93-68d87ef8ff12",
+      "Assignee": "\u041E\u043B\u0435\u043A\u0441\u0456\u0439 (\u0420\u043E\u0437\u0440\u043E\u0431\u043D\u0438\u043A / Developer)",
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "efef912a-5852-481d-abfe-e8ab23823ff9",
+      "ListId": "fa9efd6f-7634-4364-8840-7e3e29f3d9ad",
+      "Title": "\u0421\u0430\u0431\u0442\u0430\u0441\u043A\u0430 \u0434\u043E \u0441\u0430\u0431\u0442\u0430\u0441\u043A\u0438 \u0022\u0412\u0435\u0440\u0441\u0442\u043A\u0430 \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438\u0022",
+      "Description": "",
+      "Status": "InProgress",
+      "Priority": "Normal",
+      "DueDate": null,
+      "Tags": [],
+      "ParentTaskId": "1b1f1407-3025-4268-a90d-0dccec295b4d",
+      "Assignee": null,
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "e0c0cb38-50a6-403a-9ed2-5e68f3620e51",
+      "ListId": "fa9efd6f-7634-4364-8840-7e3e29f3d9ad",
+      "Title": "\u0421\u0430\u0431\u0442\u0430\u0441\u043A\u0430 2 \u0434\u043E \u0441\u0430\u0431\u0442\u0430\u0441\u043A\u0438 \u0022\u0412\u0435\u0440\u0441\u0442\u043A\u0430 \u0433\u043E\u043B\u043E\u0432\u043D\u043E\u0457 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438\u0022",
+      "Description": "",
+      "Status": "ToDo",
+      "Priority": "Normal",
+      "DueDate": null,
+      "Tags": [],
+      "ParentTaskId": "1b1f1407-3025-4268-a90d-0dccec295b4d",
+      "Assignee": null,
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [],
+      "Comments": []
+    },
+    {
+      "Id": "5bb516ec-141b-4999-9600-aec4da51f3c9",
+      "ListId": "4f7e2a96-f94d-4be0-80bc-46761ab083c2",
+      "Title": "\u0422\u0435\u0441\u0442",
+      "Description": "",
+      "Status": "ToDo",
+      "Priority": "Normal",
+      "DueDate": null,
+      "Tags": [],
+      "ParentTaskId": "6b149d29-3fd7-49a5-a595-e6623a0bc564",
+      "Assignee": null,
+      "TimeEstimate": null,
+      "TimeLogs": [],
+      "Attachments": [
+        "/uploads/b14c5ad6-7b5d-4eea-9670-a10a13c4d64d.jpg"
+      ],
+      "Comments": [
+        {
+          "Id": "8087fcac-9169-4f06-a67f-47aef6f82b52",
+          "TaskId": "5bb516ec-141b-4999-9600-aec4da51f3c9",
+          "Author": "\u041C\u0430\u0440\u0456\u044F",
+          "Content": "\u043A\u043E\u043C\u0435\u043D\u0442",
+          "CreatedAt": "2026-05-22T04:07:00.281Z"
+        }
+      ]
+    }
+  ]
+}

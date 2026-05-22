@@ -1,0 +1,711 @@
+@page "/"
+@using ClickUpClone.Shared.Models
+@using ClickUpClone.Client.Components
+@inject HttpClient Http
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+
+@if (UserService.IsAuthenticated)
+{
+<div class="app-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <span style="font-size: 1.25rem;">✨</span> ClickUp Clone
+            </div>
+            <button class="sidebar-add-btn" title="Створити Простір" @onclick="OpenCreateSpace">
+                <Icon Name="plus" />
+            </button>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="sidebar-section-title">
+                <span>Робоча область (Workspace)</span>
+            </div>
+
+            @if (isLoading)
+            {
+                <div style="padding: 12px; color: var(--text-muted); font-size: 0.85rem;">Завантаження...</div>
+            }
+            else if (!nodes.Any(n => n.ParentId == null))
+            {
+                <div style="padding: 12px; color: var(--text-muted); font-size: 0.85rem; text-align: center;">Немає елементів. Створіть новий Простір!</div>
+            }
+            else
+            {
+                @foreach (var node in nodes.Where(n => n.ParentId == null).OrderBy(n => n.SortOrder).ThenBy(n => n.Type).ThenBy(n => n.Name))
+                {
+                    <SidebarNode Node="node"
+                                 AllNodes="nodes"
+                                 ActiveNodeId="selectedNode?.Id"
+                                 OnSelectNode="SelectNode"
+                                 OnCreateChildNode="OpenCreateChild"
+                                 OnRenameNode="OpenRenameNode"
+                                 OnDeleteNode="OpenDeleteNode"
+                                 OnMoveNode="HandleMoveNode" />
+                }
+            }
+
+            @if (!isLoading && nodes.Any())
+            {
+                <div class="sidebar-root-dropzone @(isDragOverRoot ? "drag-over" : "")"
+                     @ondragover="HandleDragOverRoot"
+                     @ondragover:preventDefault
+                     @ondragleave="HandleDragLeaveRoot"
+                     @ondrop="HandleDropRoot">
+                    <span>⚓ Перетягніть сюди для винесення в корінь</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="main-header">
+            <div class="breadcrumbs">
+                @if (selectedNode != null)
+                {
+                    var path = GetNodePath(selectedNode);
+                    for (int i = 0; i < path.Count; i++)
+                    {
+                        var pathNode = path[i];
+                        <div class="breadcrumb-item">
+                            <Icon Name="@pathNode.Type.ToString().ToLower()" Class="@($"node-icon-{pathNode.Type.ToString().ToLower()}")" />
+                            <span>@pathNode.Name</span>
+                        </div>
+                        @if (i < path.Count - 1)
+                        {
+                            <span class="breadcrumb-separator">/</span>
+                        }
+                    }
+                }
+                else
+                {
+                    <span>Оберіть простір або папку</span>
+                }
+            </div>
+
+            @if (selectedNode != null)
+            {
+                <div class="view-tabs">
+                    <button class="view-tab @(currentView == ViewMode.Board ? "active" : "")" @onclick="() => SwitchView(ViewMode.Board)">
+                        <Icon Name="board" /> Дошка
+                    </button>
+                    <button class="view-tab @(currentView == ViewMode.List ? "active" : "")" @onclick="() => SwitchView(ViewMode.List)">
+                        <Icon Name="list" /> Список
+                    </button>
+                    <button class="view-tab @(currentView == ViewMode.Table ? "active" : "")" @onclick="() => SwitchView(ViewMode.Table)">
+                        <Icon Name="table" /> Таблиця
+                    </button>
+                </div>
+
+            }
+
+            <div class="header-actions">
+                <button class="user-profile-btn-header" @onclick="OpenCabinet" title="Мій профіль">
+                    <span class="avatar-circle" style="background-color: @UserService.CurrentUser?.AvatarColor">
+                        @(UserService.CurrentUser?.Name != null && UserService.CurrentUser.Name.Length > 0 ? UserService.CurrentUser.Name[0].ToString() : "?")
+                    </span>
+                    <span class="user-name">@UserService.CurrentUser?.Name</span>
+                    <span class="gear-icon">⚙️</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tasks Content Area -->
+        @if (isLoading)
+        {
+            <div class="welcome-screen">
+                <div class="welcome-title">Завантаження робочого простору...</div>
+            </div>
+        }
+        else if (selectedNode == null)
+        {
+            <div class="welcome-screen">
+                <div class="welcome-icon">⚡</div>
+                <h2 class="welcome-title">Ласкаво просимо до ClickUp Clone!</h2>
+                <p>Оберіть або створіть Простір, Папку або Список у бічній панелі, щоб розпочати роботу.</p>
+            </div>
+        }
+        else
+        {
+            @if (currentView == ViewMode.Board)
+            {
+                <KanbanBoard ActiveNode="selectedNode"
+                             AllNodes="nodes"
+                             Tasks="tasks"
+                             @bind-SearchQuery="searchQuery"
+                             @bind-TaskTypeFilter="taskTypeFilter"
+                             OnTaskUpdated="UpdateTaskStatus"
+                             OnEditTask="OpenEditTaskModal"
+                             OnAddTask="OpenAddTaskModal" />
+            }
+            else if (currentView == ViewMode.List)
+            {
+                <ListView ActiveNode="selectedNode"
+                          AllNodes="nodes"
+                          AllTasks="tasks"
+                          @bind-SearchQuery="searchQuery"
+                          @bind-TaskTypeFilter="taskTypeFilter"
+                          OnEditTask="OpenEditTaskModal"
+                          OnAddTask="OpenAddTaskModal" />
+            }
+            else if (currentView == ViewMode.Table)
+            {
+                <TableView ActiveNode="selectedNode"
+                           AllNodes="nodes"
+                           AllTasks="tasks"
+                           @bind-SearchQuery="searchQuery"
+                           @bind-TaskTypeFilter="taskTypeFilter"
+                           OnEditTask="OpenEditTaskModal"
+                           OnAddTask="OpenAddTaskModal" />
+            }
+        }
+    </div>
+</div>
+
+<!-- Modals for Tasks -->
+<TaskModal IsOpen="isTaskModalOpen"
+           @bind-Task="currentTask"
+           IsNewTask="isNewTask"
+           AllTasks="tasks"
+           OnSave="SaveTask"
+           OnDelete="DeleteTask"
+           OnCancel="CloseTaskModal"
+           OnRefreshData="LoadData" />
+
+<!-- Modal: Create Node -->
+@if (isCreateNodeOpen)
+{
+    <div class="modal-overlay" @onclick="CloseCreateNode">
+        <div class="modal-window" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    @(parentNodeForCreate == null ? "Створити новий Простір" : $"Створити всередині '{parentNodeForCreate.Name}'")
+                </h3>
+                <button class="modal-close" @onclick="CloseCreateNode">×</button>
+            </div>
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(createNodeError))
+                {
+                    <div style="color: var(--priority-urgent); margin-bottom: 12px; font-size: 0.85rem; padding: 8px; background: rgba(224, 86, 86, 0.15); border-radius: 4px; border: 1px solid var(--priority-urgent);">
+                        ⚠️ @createNodeError
+                    </div>
+                }
+                <div class="form-group">
+                    <label>Назва</label>
+                    <input type="text" class="form-input" @bind="nodeCreateName" placeholder="Введіть назву..." />
+                </div>
+                @if (parentNodeForCreate != null)
+                {
+                    <div class="form-group">
+                        <label>Тип елемента</label>
+                        <select class="form-input" @bind="nodeCreateType">
+                            <option value="@NodeType.Folder">Папка (Folder)</option>
+                            <option value="@NodeType.List">Список (List)</option>
+                        </select>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseCreateNode">Скасувати</button>
+                <button class="btn btn-primary" @onclick="SaveNewNode">Створити</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Rename Node -->
+@if (isRenameNodeOpen && nodeToRename != null)
+{
+    <div class="modal-overlay" @onclick="CloseRenameNode">
+        <div class="modal-window" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3 class="modal-title">Перейменувати '@nodeToRename.Name'</h3>
+                <button class="modal-close" @onclick="CloseRenameNode">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Нова назва</label>
+                    <input type="text" class="form-input" @bind="nodeRenameName" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseRenameNode">Скасувати</button>
+                <button class="btn btn-primary" @onclick="SaveRenameNode">Зберегти</button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Delete Confirmation -->
+@if (isDeleteNodeOpen && nodeToDelete != null)
+{
+    <div class="modal-overlay" @onclick="CloseDeleteNode">
+        <div class="modal-window" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3 class="modal-title">Видалити '@nodeToDelete.Name'?</h3>
+                <button class="modal-close" @onclick="CloseDeleteNode">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Ви впевнені, що хочете видалити <strong>@nodeToDelete.Name</strong>?</p>
+                <p style="color: var(--priority-urgent); margin-top: 10px; font-size: 0.85rem;">
+                    ⚠️ Це також видалить всі вкладені папки, списки та завдання у них! Цю дію не можна скасувати.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDeleteNode">Скасувати</button>
+                <button class="btn btn-danger" @onclick="ConfirmDeleteNode">Видалити</button>
+            </div>
+        </div>
+    </div>
+}
+
+<PersonalCabinet IsOpen="isCabinetOpen"
+                 OnClose="CloseCabinet"
+                 AllTasks="tasks"
+                 AllNodes="nodes"
+                 OnEditTask="OpenEditTaskModal"
+                 OnLogout="HandleCabinetLogout" />
+}
+
+@code {
+    private List<HierarchyNode> nodes = new();
+    private List<TaskItem> tasks = new();
+    private HierarchyNode? selectedNode;
+    private bool isLoading = true;
+
+    // View switcher fields
+    private enum ViewMode { Board, List, Table }
+    private ViewMode currentView = ViewMode.Board;
+
+    // Search and filter fields
+    private string searchQuery = "";
+    private string taskTypeFilter = "all";
+
+    // Task editing fields
+    private bool isTaskModalOpen = false;
+    private TaskItem currentTask = new();
+    private bool isNewTask = false;
+
+    // Hierarchy creation fields
+    private bool isCreateNodeOpen = false;
+    private HierarchyNode? parentNodeForCreate;
+    private string nodeCreateName = "";
+    private NodeType nodeCreateType = NodeType.Folder;
+    private string? createNodeError;
+
+    // Hierarchy renaming fields
+    private bool isRenameNodeOpen = false;
+    private HierarchyNode? nodeToRename;
+    private string nodeRenameName = "";
+
+    // Hierarchy deletion fields
+    private bool isDeleteNodeOpen = false;
+    private HierarchyNode? nodeToDelete;
+
+    // Drag to root state
+    private bool isDragOverRoot = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UserService.InitializeAsync();
+        if (!UserService.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            var data = await Http.GetFromJsonAsync<WorkspaceData>($"api/workspace/tree?t={DateTime.UtcNow.Ticks}", JsonOptions.Default);
+            if (data != null)
+            {
+                nodes = data.Nodes ?? new();
+                tasks = data.Tasks ?? new();
+
+                // If selected node was deleted, clear selection
+                if (selectedNode != null && !nodes.Any(n => n.Id == selectedNode.Id))
+                {
+                    selectedNode = null;
+                }
+                // Refresh reference of selected node from newly loaded list
+                if (selectedNode != null)
+                {
+                    selectedNode = nodes.FirstOrDefault(n => n.Id == selectedNode.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectNode(HierarchyNode node)
+    {
+        selectedNode = node;
+    }
+
+    private void SwitchView(ViewMode mode)
+    {
+        currentView = mode;
+    }
+
+    private List<HierarchyNode> GetNodePath(HierarchyNode node)
+    {
+        var path = new List<HierarchyNode>();
+        var current = node;
+        while (current != null)
+        {
+            path.Insert(0, current);
+            current = nodes.FirstOrDefault(n => n.Id == current.ParentId);
+        }
+        return path;
+    }
+
+    // Task Actions
+    private void OpenAddTaskModal(TaskCompletionStatus defaultStatus)
+    {
+        if (selectedNode == null) return;
+
+        var listId = selectedNode.Type == NodeType.List ? selectedNode.Id : Guid.Empty;
+        if (listId == Guid.Empty) return;
+
+        currentTask = new TaskItem
+        {
+            ListId = listId,
+            Status = defaultStatus,
+            Priority = TaskPriority.Normal,
+            Tags = new List<string>()
+        };
+        isNewTask = true;
+        isTaskModalOpen = true;
+    }
+
+    private void OpenEditTaskModal(TaskItem task)
+    {
+        currentTask = new TaskItem
+        {
+            Id = task.Id,
+            ListId = task.ListId,
+            Title = task.Title,
+            Description = task.Description,
+            Status = task.Status,
+            Priority = task.Priority,
+            DueDate = task.DueDate,
+            Tags = task.Tags != null ? new List<string>(task.Tags) : new List<string>(),
+            ParentTaskId = task.ParentTaskId,
+            Assignee = task.Assignee,
+            TimeEstimate = task.TimeEstimate,
+            TimeLogs = task.TimeLogs != null ? new List<TimeLogEntry>(task.TimeLogs) : new List<TimeLogEntry>(),
+            Attachments = task.Attachments != null ? new List<string>(task.Attachments) : new List<string>(),
+            Comments = task.Comments != null ? new List<TaskComment>(task.Comments) : new List<TaskComment>()
+        };
+        isNewTask = false;
+        isTaskModalOpen = true;
+    }
+
+    private void CloseTaskModal()
+    {
+        isTaskModalOpen = false;
+    }
+
+    private async Task SaveTask(TaskItem task)
+    {
+        isTaskModalOpen = false;
+        try
+        {
+            HttpResponseMessage response;
+            if (isNewTask)
+            {
+                response = await Http.PostAsJsonAsync("api/workspace/tasks", task, JsonOptions.Default);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"api/workspace/tasks/{task.Id}", task, JsonOptions.Default);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving task: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateTaskStatus(TaskItem task)
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/workspace/tasks/{task.Id}", task, JsonOptions.Default);
+            if (response.IsSuccessStatusCode)
+            {
+                var localTask = tasks.FirstOrDefault(t => t.Id == task.Id);
+                if (localTask != null)
+                {
+                    localTask.Status = task.Status;
+                }
+            }
+            else
+            {
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating task status: {ex.Message}");
+            await LoadData();
+        }
+    }
+
+    private async Task DeleteTask(TaskItem task)
+    {
+        isTaskModalOpen = false;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/workspace/tasks/{task.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting task: {ex.Message}");
+        }
+    }
+
+    // Hierarchy Nodes Actions
+    private void OpenCreateSpace()
+    {
+        parentNodeForCreate = null;
+        nodeCreateName = "";
+        nodeCreateType = NodeType.Space;
+        createNodeError = null;
+        isCreateNodeOpen = true;
+    }
+
+    private void OpenCreateChild(HierarchyNode parentNode)
+    {
+        parentNodeForCreate = parentNode;
+        nodeCreateName = "";
+        nodeCreateType = NodeType.Folder;
+        createNodeError = null;
+        isCreateNodeOpen = true;
+    }
+
+    private void CloseCreateNode()
+    {
+        isCreateNodeOpen = false;
+    }
+
+    private async Task SaveNewNode()
+    {
+        if (string.IsNullOrWhiteSpace(nodeCreateName)) return;
+
+        createNodeError = null;
+        try
+        {
+            var newNode = new HierarchyNode
+            {
+                Name = nodeCreateName.Trim(),
+                Type = parentNodeForCreate == null ? NodeType.Space : nodeCreateType,
+                ParentId = parentNodeForCreate?.Id
+            };
+
+            var response = await Http.PostAsJsonAsync("api/workspace/nodes", newNode, JsonOptions.Default);
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<HierarchyNode>(JsonOptions.Default);
+                await LoadData();
+                if (created != null)
+                {
+                    selectedNode = nodes.FirstOrDefault(n => n.Id == created.Id) ?? created;
+                }
+                isCreateNodeOpen = false;
+            }
+            else
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                createNodeError = string.IsNullOrWhiteSpace(errorText) 
+                    ? $"Не вдалося створити елемент (Код: {response.StatusCode})"
+                    : errorText;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating node: {ex.Message}");
+            createNodeError = $"Помилка: {ex.Message}";
+        }
+    }
+
+    private void OpenRenameNode(HierarchyNode node)
+    {
+        nodeToRename = node;
+        nodeRenameName = node.Name;
+        isRenameNodeOpen = true;
+    }
+
+    private void CloseRenameNode()
+    {
+        isRenameNodeOpen = false;
+        nodeToRename = null;
+    }
+
+    private async Task SaveRenameNode()
+    {
+        if (nodeToRename == null || string.IsNullOrWhiteSpace(nodeRenameName)) return;
+
+        isRenameNodeOpen = false;
+        try
+        {
+            nodeToRename.Name = nodeRenameName;
+            var response = await Http.PutAsJsonAsync($"api/workspace/nodes/{nodeToRename.Id}", nodeToRename, JsonOptions.Default);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error renaming node: {ex.Message}");
+        }
+        finally
+        {
+            nodeToRename = null;
+        }
+    }
+
+    private void OpenDeleteNode(HierarchyNode node)
+    {
+        nodeToDelete = node;
+        isDeleteNodeOpen = true;
+    }
+
+    private void CloseDeleteNode()
+    {
+        isDeleteNodeOpen = false;
+        nodeToDelete = null;
+    }
+
+    private async Task ConfirmDeleteNode()
+    {
+        if (nodeToDelete == null) return;
+
+        isDeleteNodeOpen = false;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/workspace/nodes/{nodeToDelete.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                if (selectedNode?.Id == nodeToDelete.Id)
+                {
+                    selectedNode = null;
+                }
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting node: {ex.Message}");
+        }
+        finally
+        {
+            nodeToDelete = null;
+        }
+    }
+
+    // Drag and Drop Node Move Handlers
+    private async Task HandleMoveNode((HierarchyNode DraggedNode, Guid? ParentId, Guid? TargetNodeId, bool Before) args)
+    {
+        await MoveNodeAsync(args.DraggedNode, args.ParentId, args.TargetNodeId, args.Before);
+    }
+
+    private async Task MoveNodeAsync(HierarchyNode node, Guid? parentId, Guid? targetNodeId, bool before)
+    {
+        try
+        {
+            var url = $"api/workspace/nodes/{node.Id}/move?";
+            if (parentId.HasValue)
+            {
+                url += $"parentId={parentId.Value}&";
+            }
+            if (targetNodeId.HasValue)
+            {
+                url += $"targetNodeId={targetNodeId.Value}&";
+            }
+            url += $"before={before.ToString().ToLower()}";
+
+            var response = await Http.PostAsync(url, null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+            }
+            else
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error moving node: {errorText}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error moving node: {ex.Message}");
+        }
+    }
+
+    private void HandleDragOverRoot()
+    {
+        if (SidebarNode.DraggedNode != null && SidebarNode.DraggedNode.ParentId != null)
+        {
+            isDragOverRoot = true;
+        }
+    }
+
+    private void HandleDragLeaveRoot()
+    {
+        isDragOverRoot = false;
+    }
+
+    private async Task HandleDropRoot()
+    {
+        isDragOverRoot = false;
+        var dragged = SidebarNode.DraggedNode;
+        if (dragged != null && dragged.ParentId != null)
+        {
+            await MoveNodeAsync(dragged, null, null, false);
+            SidebarNode.DraggedNode = null;
+        }
+    }
+
+    private bool isCabinetOpen = false;
+
+    private void OpenCabinet()
+    {
+        isCabinetOpen = true;
+    }
+
+    private void CloseCabinet()
+    {
+        isCabinetOpen = false;
+    }
+
+    private void HandleCabinetLogout()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+}

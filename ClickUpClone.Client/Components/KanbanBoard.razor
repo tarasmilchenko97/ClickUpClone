@@ -1,0 +1,330 @@
+@using ClickUpClone.Shared.Models
+
+@if (ActiveNode == null)
+{
+    <div class="welcome-screen">
+        <div class="welcome-icon">⚡</div>
+        <h2 class="welcome-title">Ласкаво просимо до ClickUp Clone!</h2>
+        <p>Оберіть або створіть Простір, Папку або Список у бічній панелі, щоб розпочати роботу.</p>
+    </div>
+}
+else
+{
+    var filteredTasks = GetFilteredTasks();
+
+    <div class="view-wrapper">
+        <div class="view-controls-bar">
+            <div class="view-controls-left">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="header-search-input" placeholder="Пошук за назвою..." value="@SearchQuery" @oninput="OnSearchInput" />
+                    @if (!string.IsNullOrEmpty(SearchQuery))
+                    {
+                        <button class="search-clear-btn" @onclick="ClearSearch">×</button>
+                    }
+                </div>
+
+                <select class="header-filter-select" value="@TaskTypeFilter" @onchange="OnFilterChange">
+                    <option value="all">Усі завдання</option>
+                    <option value="main">Тільки головні</option>
+                    <option value="subtask">Тільки підзадачі</option>
+                </select>
+            </div>
+            
+            <div class="view-controls-right">
+                @if (ActiveNode?.Type == NodeType.List)
+                {
+                    <button class="btn btn-primary" @onclick="() => TriggerAddTask(TaskCompletionStatus.ToDo)">
+                        + Додати завдання
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="board-area">
+        <div class="board-container">
+            @foreach (TaskCompletionStatus status in Enum.GetValues(typeof(TaskCompletionStatus)))
+            {
+                var tasksInColumn = filteredTasks.Where(t => t.Status == status).ToList();
+                var statusDisplayName = GetStatusDisplayName(status);
+
+                <div class="board-column">
+                    <div class="column-header">
+                        <div class="column-header-left">
+                            <span class="column-indicator @status.ToString().ToLower()"></span>
+                            <span>@statusDisplayName</span>
+                            <span class="column-task-count">@tasksInColumn.Count</span>
+                        </div>
+                        
+                        @if (ActiveNode.Type == NodeType.List)
+                        {
+                            <button class="sidebar-add-btn" title="Додати задачу в цей статус" @onclick="() => TriggerAddTask(status)">
+                                <Icon Name="plus" />
+                            </button>
+                        }
+                    </div>
+
+                    <div class="column-cards @(isDragOver[status] ? "drag-over" : "")"
+                         ondragover="event.preventDefault();"
+                         @ondragenter="() => HandleDragEnter(status)"
+                         @ondragleave="() => HandleDragLeave(status)"
+                         @ondrop="() => HandleDrop(status)">
+                         
+                        @foreach (var task in tasksInColumn)
+                        {
+                            <div class="task-card" draggable="true"
+                                 @ondragstart="() => HandleDragStart(task)"
+                                 @onclick="() => EditTask(task)">
+                                 
+                                <div class="task-card-header">
+                                    <div class="task-card-title">
+                                        @if (task.ParentTaskId != null)
+                                        {
+                                            <span class="subtask-badge-icon" title="Підзадача" style="color: var(--text-muted); margin-right: 4px;">⮑</span>
+                                        }
+                                        @task.Title
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(task.Description))
+                                {
+                                    <div class="task-card-desc">@task.Description</div>
+                                }
+
+                                <div class="task-card-meta">
+                                    <div class="task-card-left">
+                                        <span class="priority-badge @task.Priority.ToString()">@GetPriorityDisplayName(task.Priority)</span>
+                                        
+                                        @if (task.DueDate.HasValue)
+                                        {
+                                            var isOverdue = task.DueDate.Value.Date < DateTime.Today && task.Status != TaskCompletionStatus.Done;
+                                            <span class="due-date-badge @(isOverdue ? "overdue" : "")">
+                                                <Icon Name="calendar" />
+                                                <span>@task.DueDate.Value.ToString("dd MMM")</span>
+                                            </span>
+                                        }
+
+                                        @if (task.Tags != null && task.Tags.Any())
+                                        {
+                                            <div class="task-tags">
+                                                @foreach (var tag in task.Tags.Take(2))
+                                                {
+                                                    <span class="tag-pill">@tag</span>
+                                                }
+                                                @if (task.Tags.Count > 2)
+                                                {
+                                                    <span class="tag-pill">+@(task.Tags.Count - 2)</span>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="task-card-right">
+                                        @if (!string.IsNullOrEmpty(task.Assignee))
+                                        {
+                                            <div class="assignee-avatar @GetAssigneeClass(task.Assignee)" title="@task.Assignee">
+                                                @GetInitials(task.Assignee)
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+}
+
+@code {
+    [Parameter] public HierarchyNode? ActiveNode { get; set; }
+    [Parameter] public List<HierarchyNode> AllNodes { get; set; } = new();
+    [Parameter] public List<TaskItem> Tasks { get; set; } = new();
+    [Parameter] public string SearchQuery { get; set; } = "";
+    [Parameter] public EventCallback<string> SearchQueryChanged { get; set; }
+    [Parameter] public string TaskTypeFilter { get; set; } = "all";
+    [Parameter] public EventCallback<string> TaskTypeFilterChanged { get; set; }
+    [Parameter] public EventCallback<TaskItem> OnTaskUpdated { get; set; }
+    [Parameter] public EventCallback<TaskItem> OnEditTask { get; set; }
+    [Parameter] public EventCallback<TaskCompletionStatus> OnAddTask { get; set; }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        SearchQuery = e.Value?.ToString() ?? "";
+        await SearchQueryChanged.InvokeAsync(SearchQuery);
+    }
+
+    private async Task ClearSearch()
+    {
+        SearchQuery = "";
+        await SearchQueryChanged.InvokeAsync(SearchQuery);
+    }
+
+    private async Task OnFilterChange(ChangeEventArgs e)
+    {
+        TaskTypeFilter = e.Value?.ToString() ?? "all";
+        await TaskTypeFilterChanged.InvokeAsync(TaskTypeFilter);
+    }
+
+    private async Task TriggerAddTask(TaskCompletionStatus status)
+    {
+        await OnAddTask.InvokeAsync(status);
+    }
+
+    private TaskItem? draggedTask;
+    private Dictionary<TaskCompletionStatus, bool> isDragOver = new();
+
+    protected override void OnInitialized()
+    {
+        foreach (TaskCompletionStatus status in Enum.GetValues(typeof(TaskCompletionStatus)))
+        {
+            isDragOver[status] = false;
+        }
+    }
+
+    private List<TaskItem> GetFilteredTasks()
+    {
+        if (ActiveNode == null) return new();
+
+        List<TaskItem> rawTasks;
+        if (ActiveNode.Type == NodeType.List)
+        {
+            rawTasks = Tasks.Where(t => t.ListId == ActiveNode.Id).ToList();
+        }
+        else
+        {
+            // Space or Folder: gather list IDs recursively
+            var listIds = new HashSet<Guid>();
+            GetChildListIds(ActiveNode.Id, listIds);
+            rawTasks = Tasks.Where(t => listIds.Contains(t.ListId)).ToList();
+        }
+
+        // Apply task type filter:
+        if (TaskTypeFilter == "main")
+        {
+            rawTasks = rawTasks.Where(t => t.ParentTaskId == null).ToList();
+        }
+        else if (TaskTypeFilter == "subtask")
+        {
+            rawTasks = rawTasks.Where(t => t.ParentTaskId != null).ToList();
+        }
+        else
+        {
+            // For "all", if there is no active search, hide subtasks from top level to show normal board.
+            // If there is an active search, display all matching tasks flat.
+            if (string.IsNullOrWhiteSpace(SearchQuery))
+            {
+                rawTasks = rawTasks.Where(t => t.ParentTaskId == null).ToList();
+            }
+        }
+
+        // Apply search query:
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            rawTasks = rawTasks.Where(t => t.Title.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        return rawTasks;
+    }
+
+    private void GetChildListIds(Guid parentId, HashSet<Guid> listIds)
+    {
+        var children = AllNodes.Where(n => n.ParentId == parentId).ToList();
+        foreach (var child in children)
+        {
+            if (child.Type == NodeType.List)
+            {
+                listIds.Add(child.Id);
+            }
+            else
+            {
+                GetChildListIds(child.Id, listIds);
+            }
+        }
+    }
+
+    private void HandleDragStart(TaskItem task)
+    {
+        draggedTask = task;
+    }
+
+    private void HandleDragEnter(TaskCompletionStatus status)
+    {
+        isDragOver[status] = true;
+    }
+
+    private void HandleDragLeave(TaskCompletionStatus status)
+    {
+        isDragOver[status] = false;
+    }
+
+    private async Task HandleDrop(TaskCompletionStatus newStatus)
+    {
+        isDragOver[newStatus] = false;
+        if (draggedTask != null)
+        {
+            if (draggedTask.Status != newStatus)
+            {
+                draggedTask.Status = newStatus;
+                await OnTaskUpdated.InvokeAsync(draggedTask);
+            }
+            draggedTask = null;
+        }
+    }
+
+    private async Task EditTask(TaskItem task)
+    {
+        await OnEditTask.InvokeAsync(task);
+    }
+
+
+    private string GetStatusDisplayName(TaskCompletionStatus status)
+    {
+        return status switch
+        {
+            TaskCompletionStatus.ToDo => "To Do",
+            TaskCompletionStatus.ReadyForDevelopment => "Ready for Dev",
+            TaskCompletionStatus.InProgress => "In Progress",
+            TaskCompletionStatus.InReview => "In Review",
+            TaskCompletionStatus.ReadyForTesting => "Ready for Test",
+            TaskCompletionStatus.InTesting => "In Testing",
+            TaskCompletionStatus.Tested => "Tested",
+            TaskCompletionStatus.Done => "Done",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetPriorityDisplayName(TaskPriority priority)
+    {
+        return priority switch
+        {
+            TaskPriority.Urgent => "Urgent",
+            TaskPriority.High => "High",
+            TaskPriority.Normal => "Normal",
+            TaskPriority.Low => "Low",
+            _ => priority.ToString()
+        };
+    }
+
+    private string GetInitials(string? assignee)
+    {
+        if (string.IsNullOrWhiteSpace(assignee)) return "";
+        var name = assignee.Split('(')[0].Trim();
+        var parts = name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+    }
+
+    private string GetAssigneeClass(string? assignee)
+    {
+        if (string.IsNullOrWhiteSpace(assignee)) return "";
+        if (assignee.Contains("Розробник") || assignee.Contains("Developer")) return "assignee-dev";
+        if (assignee.Contains("Тестувальник") || assignee.Contains("QA")) return "assignee-qa";
+        if (assignee.Contains("Дизайнер") || assignee.Contains("Designer")) return "assignee-designer";
+        if (assignee.Contains("Manager") || assignee.Contains("Олена")) return "assignee-pm";
+        return "assignee-default";
+    }
+}

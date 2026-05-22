@@ -1,0 +1,75 @@
+{
+  "login_info": {
+    "title": "ClickUp Clone",
+    "quickButtons": [
+      "О\n                        Олексій\n                            Developer",
+      "М\n                        Марія\n                            QA",
+      "І\n                        Іван\n                            Designer",
+      "О\n                        Олена\n                            PM",
+      "А\n                        Адміністратор\n                            Admin"
+    ]
+  },
+  "profile_info": {
+    "userName": "Олексій",
+    "hasAddBtn": true
+  },
+  "cabinet_info": {
+    "title": "Олексій",
+    "role": "Developer",
+    "stats": [
+      {
+        "label": "Призначених задач",
+        "val": "0"
+      },
+      {
+        "label": "Витрачено часу",
+        "val": "0,0 год"
+      }
+    ]
+  },
+  "log_store": {
+    "console": [
+      {
+        "type": "startGroupCollapsed",
+        "text": "%cdotnet%c Loaded 13.22 MB resources%c\nThis application was built with linking (tree shaking) disabled. \nPublished applications will be significantly smaller if you install wasm-tools workload. \nSee also https://aka.ms/dotnet-wasm-features background: purple; color: white; padding: 1px 3px; border-radius: 3px; font-weight: bold; font-weight: normal;"
+      },
+      {
+        "type": "startGroupCollapsed",
+        "text": "Loaded 13.22 MB resources from network"
+      },
+      {
+        "type": "table",
+        "text": ""
+      },
+      {
+        "type": "endGroup",
+        "text": "console.groupEnd"
+      },
+      {
+        "type": "endGroup",
+        "text": "console.groupEnd"
+      },
+      {
+        "type": "info",
+        "text": "Debugging hotkey: Shift+Alt+D (when application has focus)"
+      }
+    ],
+    "exceptions": [],
+    "logs": [
+      {
+        "level": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      },
+      {
+        "level": "verbose",
+        "text": "[DOM] Input elements should have autocomplete attributes (suggested: \"current-password\"): (More info: https://goo.gl/9p2vKq) %o"
+      }
+    ],
+    "network_errors": [
+      {
+        "url": "http://localhost:5029/ClickUpClone.Client.styles.css",
+        "status": 404
+      }
+    ]
+  }
+}

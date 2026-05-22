@@ -1,0 +1,183 @@
+@inject UserService UserService
+
+@if (IsOpen)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-window cabinet-modal" @onclick:stopPropagation>
+            <div class="modal-header">
+                <div class="cabinet-title-area">
+                    <span class="user-avatar-large" style="background-color: @UserService.CurrentUser?.AvatarColor">
+                        @(UserService.CurrentUser?.Name != null && UserService.CurrentUser.Name.Length > 0 ? UserService.CurrentUser.Name[0].ToString() : "?")
+                    </span>
+                    <div>
+                        <h3 class="modal-title">@UserService.CurrentUser?.Name</h3>
+                        <span class="user-role-badge">@UserService.CurrentUser?.Role</span>
+                    </div>
+                </div>
+                <button class="modal-close" @onclick="Close">×</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-info">
+                            <span class="stat-value">@AssignedTasks.Count</span>
+                            <span class="stat-label">Призначених задач</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-info">
+                            <span class="stat-value">@TotalHoursLogged.ToString("F1") год</span>
+                            <span class="stat-label">Витрачено часу</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assigned Tasks List -->
+                <div class="cabinet-section">
+                    <h4>Мої завдання (@AssignedTasks.Count)</h4>
+                    @if (!AssignedTasks.Any())
+                    {
+                        <div class="empty-state">
+                            <p>У вас немає призначених завдань 🎉</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cabinet-tasks-table-wrapper">
+                            <table class="cabinet-tasks-table">
+                                <thead>
+                                    <tr>
+                                        <th>Завдання</th>
+                                        <th>Шлях</th>
+                                        <th>Статус</th>
+                                        <th>Пріоритет</th>
+                                        <th>Час (Витрачено / Оцінка)</th>
+                                        <th>Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var task in AssignedTasks)
+                                    {
+                                        var listNode = AllNodes.FirstOrDefault(n => n.Id == task.ListId);
+                                        var pathString = listNode != null ? GetPathString(listNode) : "Невідомо";
+                                        var spent = task.TimeLogs != null ? task.TimeLogs.Where(l => l.User == UserService.CurrentUser?.Name).Sum(l => l.Hours) : 0;
+                                        var estimate = task.TimeEstimate;
+
+                                        <tr>
+                                            <td class="task-title-cell">
+                                                <span class="task-title-link" @onclick="() => EditTask(task)">@task.Title</span>
+                                            </td>
+                                            <td class="task-path-cell">@pathString</td>
+                                            <td>
+                                                <span class="status-badge status-@task.Status.ToString().ToLower()">
+                                                    @GetStatusTranslation(task.Status)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="priority-badge priority-@task.Priority.ToString().ToLower()">
+                                                    @GetPriorityTranslation(task.Priority)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @spent.ToString("F1") / @(estimate.HasValue ? estimate.Value.ToString("F1") + " год" : "—")
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-secondary btn-sm" @onclick="() => EditTask(task)">Відкрити</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-danger" @onclick="HandleLogout">Вийти з системи</button>
+                <button class="btn btn-secondary" @onclick="Close">Закрити</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public List<TaskItem> AllTasks { get; set; } = new();
+    [Parameter] public List<HierarchyNode> AllNodes { get; set; } = new();
+    [Parameter] public EventCallback<TaskItem> OnEditTask { get; set; }
+    [Parameter] public EventCallback OnLogout { get; set; }
+
+    private List<TaskItem> AssignedTasks => AllTasks
+        .Where(t => !string.IsNullOrEmpty(t.Assignee) && UserService.CurrentUser != null && t.Assignee.StartsWith(UserService.CurrentUser.Name, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private double TotalHoursLogged => AllTasks
+        .Where(t => t.TimeLogs != null)
+        .SelectMany(t => t.TimeLogs)
+        .Where(l => l.User == UserService.CurrentUser?.Name)
+        .Sum(l => l.Hours);
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task EditTask(TaskItem task)
+    {
+        await OnClose.InvokeAsync();
+        await OnEditTask.InvokeAsync(task);
+    }
+
+    private async Task HandleLogout()
+    {
+        await UserService.LogoutAsync();
+        await OnClose.InvokeAsync();
+        await OnLogout.InvokeAsync();
+    }
+
+    private string GetPathString(HierarchyNode node)
+    {
+        var path = new List<string>();
+        var current = node;
+        while (current != null)
+        {
+            path.Insert(0, current.Name);
+            current = AllNodes.FirstOrDefault(n => n.Id == current.ParentId);
+        }
+        return string.Join(" / ", path);
+    }
+
+    private string GetStatusTranslation(TaskCompletionStatus status)
+    {
+        return status switch
+        {
+            TaskCompletionStatus.ToDo => "To Do",
+            TaskCompletionStatus.ReadyForDevelopment => "Ready for development",
+            TaskCompletionStatus.InProgress => "In Progress",
+            TaskCompletionStatus.InReview => "In Review",
+            TaskCompletionStatus.ReadyForTesting => "Ready for testing",
+            TaskCompletionStatus.InTesting => "In testing",
+            TaskCompletionStatus.Tested => "Tested",
+            TaskCompletionStatus.Done => "Done",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetPriorityTranslation(TaskPriority priority)
+    {
+        return priority switch
+        {
+            TaskPriority.Low => "Низький",
+            TaskPriority.Normal => "Звичайний",
+            TaskPriority.High => "Високий",
+            TaskPriority.Urgent => "Терміновий",
+            _ => priority.ToString()
+        };
+    }
+}

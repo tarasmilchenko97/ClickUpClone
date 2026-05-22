@@ -1,0 +1,746 @@
+@using ClickUpClone.Shared.Models
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+@inject UserService UserService
+
+@if (IsOpen)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-window task-detail" @onclick:stopPropagation>
+            <div class="modal-header-container">
+                @if (taskNavigationStack.Count > 1)
+                {
+                    <div class="modal-breadcrumbs">
+                        @for (int i = 0; i < taskNavigationStack.Count; i++)
+                        {
+                            var stackTask = taskNavigationStack[i];
+                            var index = i;
+                            <span class="modal-breadcrumb-item @(i == taskNavigationStack.Count - 1 ? "active" : "")"
+                                  @onclick="() => NavigateToTask(stackTask)">
+                                @stackTask.Title
+                            </span>
+                            @if (i < taskNavigationStack.Count - 1)
+                            {
+                                <span class="modal-breadcrumb-separator">/</span>
+                            }
+                        }
+                    </div>
+                }
+                
+                <div class="modal-header">
+                    <h3 class="modal-title">@(IsNewTask ? "Створити завдання" : "Редагувати завдання")</h3>
+                    <button class="modal-close" @onclick="Close">
+                        <Icon Name="x" />
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-body task-modal-grid">
+                @if (IsNewTask)
+                {
+                    <!-- For new tasks, show a simple single-column layout as we don't have subtasks, comments, or attachments yet -->
+                    <div class="task-details-pane-full">
+                        <div class="form-group">
+                            <label>Назва завдання</label>
+                            <input type="text" class="form-input" @bind="Task.Title" placeholder="Введіть назву..." />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Опис</label>
+                            <textarea class="form-input" style="height: 100px; resize: vertical;" @bind="Task.Description" placeholder="Опишіть завдання..."></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Статус</label>
+                                <select class="form-input" @bind="Task.Status">
+                                    <option value="@TaskCompletionStatus.ToDo">To Do</option>
+                                    <option value="@TaskCompletionStatus.ReadyForDevelopment">Ready for Dev</option>
+                                    <option value="@TaskCompletionStatus.InProgress">In Progress</option>
+                                    <option value="@TaskCompletionStatus.InReview">In Review</option>
+                                    <option value="@TaskCompletionStatus.ReadyForTesting">Ready for Test</option>
+                                    <option value="@TaskCompletionStatus.InTesting">In Testing</option>
+                                    <option value="@TaskCompletionStatus.Tested">Tested</option>
+                                    <option value="@TaskCompletionStatus.Done">Done</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Пріоритет</label>
+                                <select class="form-input" @bind="Task.Priority">
+                                    <option value="@TaskPriority.Urgent">Urgent (Терміново)</option>
+                                    <option value="@TaskPriority.High">High (Високий)</option>
+                                    <option value="@TaskPriority.Normal">Normal (Звичайний)</option>
+                                    <option value="@TaskPriority.Low">Low (Низький)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Кінцевий термін (Due Date)</label>
+                                <input type="date" class="form-input" @bind="Task.DueDate" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Виконавець (Assignee)</label>
+                                <select class="form-input" @bind="Task.Assignee">
+                                    <option value="">Без виконавця</option>
+                                    @foreach (var assignee in availableAssignees)
+                                    {
+                                        <option value="@assignee">@assignee</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Теги</label>
+                            <div class="tags-edit-area">
+                                @if (Task.Tags != null)
+                                {
+                                    @foreach (var tag in Task.Tags)
+                                    {
+                                        <span class="tag-edit-pill">
+                                            @tag
+                                            <button class="tag-remove-btn" @onclick="() => RemoveTag(tag)">×</button>
+                                        </span>
+                                    }
+                                }
+                                <input type="text" class="tag-input-field" 
+                                       placeholder="Додати тег..." 
+                                       @bind="newTagText" 
+                                       @onkeydown="HandleTagKeyDown" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="task-tree-sidebar">
+                        <h4>Ієрархія підзавдань</h4>
+                        <div class="task-tree-scroll">
+                            @if (Task != null)
+                            {
+                                var root = GetRootTask(Task);
+                                @RenderTreeNode(root, 0)
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Middle Column: Details, Time log, inline subtasks, inline screenshots -->
+                    <div class="task-details-pane">
+                        <div class="form-group">
+                            <label>Назва завдання</label>
+                            <input type="text" class="form-input" @bind="Task.Title" placeholder="Введіть назву..." />
+                        </div>
+
+                        <!-- Description & Inline Screenshots block -->
+                        <div class="form-group">
+                            <label>Опис та скріншоти</label>
+                            <div class="description-editor-wrapper">
+                                <textarea class="form-input description-textarea" style="height: 120px; resize: vertical; margin-bottom: 12px;" @bind="Task.Description" placeholder="Опишіть завдання..."></textarea>
+                                
+                                <div class="inline-attachments-area">
+                                    <div class="inline-attachments-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">📸 Скріншоти (@(Task.Attachments?.Count ?? 0))</span>
+                                        <InputFile OnChange="HandleFileSelected" class="file-input-hidden" id="inlineFileUpload" accept="image/*" />
+                                        <label for="inlineFileUpload" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                            📎 Додати скріншот
+                                        </label>
+                                    </div>
+                                    
+                                    @if (isUploadingFile)
+                                    {
+                                        <div class="upload-status" style="margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);">
+                                            <span class="spinner"></span> Завантаження файлу на сервер...
+                                        </div>
+                                    }
+
+                                    @if (Task.Attachments != null && Task.Attachments.Any())
+                                    {
+                                        <div class="inline-attachments-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin-top: 8px;">
+                                            @foreach (var attachment in Task.Attachments)
+                                            {
+                                                <div class="attachment-thumbnail-wrapper" style="position: relative; width: 70px; height: 70px; border-radius: 6px; border: 1px solid var(--border-color); overflow: hidden; background-color: rgba(0, 0, 0, 0.2);">
+                                                    <img src="@GetAttachmentUrl(attachment)" class="attachment-thumbnail" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" @onclick="() => OpenLightbox(attachment)" />
+                                                    <button type="button" class="attachment-remove-btn" @onclick="() => RemoveAttachment(attachment)">×</button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Статус</label>
+                                <select class="form-input" @bind="Task.Status">
+                                    <option value="@TaskCompletionStatus.ToDo">To Do</option>
+                                    <option value="@TaskCompletionStatus.ReadyForDevelopment">Ready for Dev</option>
+                                    <option value="@TaskCompletionStatus.InProgress">In Progress</option>
+                                    <option value="@TaskCompletionStatus.InReview">In Review</option>
+                                    <option value="@TaskCompletionStatus.ReadyForTesting">Ready for Test</option>
+                                    <option value="@TaskCompletionStatus.InTesting">In Testing</option>
+                                    <option value="@TaskCompletionStatus.Tested">Tested</option>
+                                    <option value="@TaskCompletionStatus.Done">Done</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Пріоритет</label>
+                                <select class="form-input" @bind="Task.Priority">
+                                    <option value="@TaskPriority.Urgent">Urgent (Терміново)</option>
+                                    <option value="@TaskPriority.High">High (Високий)</option>
+                                    <option value="@TaskPriority.Normal">Normal (Звичайний)</option>
+                                    <option value="@TaskPriority.Low">Low (Низький)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Кінцевий термін (Due Date)</label>
+                                <input type="date" class="form-input" @bind="Task.DueDate" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Виконавець (Assignee)</label>
+                                <select class="form-input" @bind="Task.Assignee">
+                                    <option value="">Без виконавця</option>
+                                    @foreach (var assignee in availableAssignees)
+                                    {
+                                        <option value="@assignee">@assignee</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Теги</label>
+                            <div class="tags-edit-area">
+                                @if (Task.Tags != null)
+                                {
+                                    @foreach (var tag in Task.Tags)
+                                    {
+                                        <span class="tag-edit-pill">
+                                            @tag
+                                            <button class="tag-remove-btn" @onclick="() => RemoveTag(tag)">×</button>
+                                        </span>
+                                    }
+                                }
+                                <input type="text" class="tag-input-field" 
+                                       placeholder="Додати тег..." 
+                                       @bind="newTagText" 
+                                       @bind:event="oninput"
+                                       @onkeydown="HandleTagKeyDown" />
+                            </div>
+                        </div>
+
+                        <!-- Time Estimation & Tracking Section -->
+                        <div class="modal-section-divider"></div>
+                        <div class="time-tracking-section">
+                            <h4 class="section-label">⏱️ Оцінка та відстеження часу</h4>
+                            
+                            <div class="time-inputs-row">
+                                <div class="form-group time-est-group">
+                                    <label>Оцінка (годин)</label>
+                                    <input type="number" step="0.5" min="0" class="form-input" @bind="Task.TimeEstimate" placeholder="напр. 8" />
+                                </div>
+
+                                <div class="time-log-form">
+                                    <label>Логувати час</label>
+                                    <div class="time-log-inputs">
+                                        <input type="number" step="0.25" min="0.1" class="form-input log-hours-input" @bind="newLogHours" placeholder="Години (напр. 2)" />
+                                        <input type="text" class="form-input log-note-input" @bind="newLogNote" placeholder="Коментар до логу..." />
+                                        <button class="btn btn-secondary" type="button" @onclick="LogTime">Додати лог</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @{
+                                double spentTime = Task.TimeLogs != null ? Task.TimeLogs.Sum(l => l.Hours) : 0;
+                                double? estTime = Task.TimeEstimate;
+                            }
+
+                            @if (estTime.HasValue && estTime.Value > 0)
+                            {
+                                var pct = Math.Min(100.0, (spentTime / estTime.Value) * 100);
+                                var progressColor = spentTime > estTime.Value ? "var(--priority-urgent)" : "var(--accent-primary)";
+                                <div class="time-progress-bar-container">
+                                    <div class="time-progress-labels">
+                                        <span>Прогрес виконання: @pct.ToString("F0")%</span>
+                                        <span>@spentTime.ToString("F1") год / @estTime.Value.ToString("F1") год</span>
+                                    </div>
+                                    <div class="time-progress-track">
+                                        <div class="time-progress-fill" style="width: @pct.ToString("F1")%; background-color: @progressColor;"></div>
+                                    </div>
+                                    @if (spentTime > estTime.Value)
+                                    {
+                                        <span class="time-over-limit-warning">⚠️ Ліміт оцінки часу перевищено!</span>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="time-progress-labels" style="margin-top: 8px;">
+                                    <span>Загальний витрачений час: <strong>@spentTime.ToString("F1") год</strong></span>
+                                </div>
+                            }
+
+                            @if (Task.TimeLogs != null && Task.TimeLogs.Any())
+                            {
+                                <div class="time-logs-history">
+                                    <h5>Історія витраченого часу:</h5>
+                                    <div class="time-logs-list">
+                                        @foreach (var log in Task.TimeLogs.OrderByDescending(l => l.LoggedAt))
+                                        {
+                                            <div class="time-log-row">
+                                                <div class="time-log-user-avatar" style="background-color: var(--accent-primary)">
+                                                    @(log.User.Length > 0 ? log.User[0].ToString() : "?")
+                                                </div>
+                                                <div class="time-log-content">
+                                                    <div class="time-log-meta">
+                                                        <strong>@log.User</strong> logged <strong>@log.Hours.ToString("F1") год</strong>
+                                                        <span class="time-log-date">@log.LoggedAt.ToString("g")</span>
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(log.Note))
+                                                    {
+                                                        <div class="time-log-note">« @log.Note »</div>
+                                                    }
+                                                </div>
+                                                <button class="time-log-remove-btn" type="button" @onclick="() => RemoveTimeLog(log.Id)">×</button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Subtasks list (inline) -->
+                        <div class="modal-section-divider"></div>
+                        <div class="subtasks-section">
+                            <label class="section-label">
+                                <Icon Name="subtask" Class="section-icon" /> Додати нове підзавдання
+                            </label>
+                            
+                            <div class="subtask-create-inline">
+                                <input type="text" class="form-input subtask-input" 
+                                       placeholder="Нове підзавдання..." 
+                                       @bind="newSubtaskTitle"
+                                       @bind:event="oninput"
+                                       @onkeydown="HandleSubtaskKeyDown" />
+                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" @onclick="AddSubtask">Додати</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Full-height Comments thread & history -->
+                    <div class="task-comments-pane">
+                        <h4 class="section-label">Коментарі</h4>
+
+                        <div class="comments-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 12px;">
+                            @if (Task.Comments != null && Task.Comments.Any())
+                            {
+                                <div class="comments-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+                                    @foreach (var comment in Task.Comments.OrderBy(c => c.CreatedAt))
+                                    {
+                                        <div class="comment-row">
+                                            <div class="comment-avatar" style="background-color: var(--accent-primary)">
+                                                @(comment.Author.Length > 0 ? comment.Author[0].ToString() : "?")
+                                            </div>
+                                            <div class="comment-bubble">
+                                                <div class="comment-meta">
+                                                    <span class="comment-author">@comment.Author</span>
+                                                    <span class="comment-time">@comment.CreatedAt.ToString("g")</span>
+                                                </div>
+                                                <div class="comment-text">@comment.Content</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="comments-empty">Немає коментарів. Залиште свій відгук першим!</div>
+                            }
+                        </div>
+
+                        <div class="comment-input-area" style="margin-top: 12px;">
+                            <textarea class="form-input comment-textarea" @bind="newCommentText" placeholder="Напишіть коментар від імені @UserService.CurrentUser?.Name..."></textarea>
+                            <button class="btn btn-primary" type="button" @onclick="AddComment" disabled="@string.IsNullOrWhiteSpace(newCommentText)">Відправити</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer">
+                @if (!IsNewTask)
+                {
+                    <button class="btn btn-danger" style="margin-right: auto;" @onclick="DeleteTask">
+                        Видалити
+                    </button>
+                }
+                <button class="btn btn-secondary" @onclick="Close">Скасувати</button>
+                <button class="btn btn-primary" @onclick="SaveTask">Зберегти</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(activeLightboxImage))
+{
+    <div class="lightbox-overlay" @onclick="CloseLightbox">
+        <div class="lightbox-content" @onclick:stopPropagation>
+            <img src="@GetAttachmentUrl(activeLightboxImage)" />
+            <button class="lightbox-close" @onclick="CloseLightbox">×</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public TaskItem Task { get; set; } = new();
+    [Parameter] public EventCallback<TaskItem> TaskChanged { get; set; }
+    [Parameter] public bool IsNewTask { get; set; }
+    [Parameter] public List<TaskItem> AllTasks { get; set; } = new();
+    [Parameter] public EventCallback<TaskItem> OnSave { get; set; }
+    [Parameter] public EventCallback<TaskItem> OnDelete { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnRefreshData { get; set; }
+
+    private string newTagText = "";
+    private string newSubtaskTitle = "";
+    private double? newLogHours;
+    private string newLogNote = "";
+    private string newCommentText = "";
+    private Guid lastTaskId;
+    private List<TaskItem> taskNavigationStack = new();
+    private bool isUploadingFile = false;
+    private string? activeLightboxImage;
+
+    private string GetAttachmentUrl(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return "";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return path;
+        return $"{Http.BaseAddress?.ToString().TrimEnd('/')}/{path.TrimStart('/')}";
+    }
+
+    private List<string> availableAssignees = new()
+    {
+        "Олексій (Розробник / Developer)",
+        "Марія (Тестувальник / QA)",
+        "Іван (Дизайнер / Designer)",
+        "Олена (Project Manager)"
+    };
+
+    RenderFragment RenderTreeNode(TaskItem nodeTask, int depth) => @<div class="tree-node-wrapper" style="--depth: @depth">
+        <div class="tree-node-row @(nodeTask.Id == Task.Id ? "is-current" : "")" @onclick="() => NavigateToTask(nodeTask)">
+            <span class="tree-node-icon">📄</span>
+            <span class="tree-node-title" title="@nodeTask.Title">@nodeTask.Title</span>
+            <span class="tree-node-status status-@nodeTask.Status.ToString().ToLower()">@GetStatusDisplayName(nodeTask.Status)</span>
+        </div>
+        @{
+            var children = AllTasks.Where(t => t.ParentTaskId == nodeTask.Id).ToList();
+            if (children.Any())
+            {
+                <div class="tree-node-children">
+                    @foreach (var child in children)
+                    {
+                        @RenderTreeNode(child, depth + 1)
+                    }
+                </div>
+            }
+        }
+    </div>;
+
+    private TaskItem GetRootTask(TaskItem current)
+    {
+        var temp = current;
+        while (temp.ParentTaskId.HasValue)
+        {
+            var parent = AllTasks.FirstOrDefault(t => t.Id == temp.ParentTaskId.Value);
+            if (parent == null) break;
+            temp = parent;
+        }
+        return temp;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen && Task != null && Task.Id != lastTaskId)
+        {
+            taskNavigationStack.Clear();
+            taskNavigationStack.Add(Task);
+            lastTaskId = Task.Id;
+        }
+    }
+
+    private async Task NavigateToTask(TaskItem targetTask)
+    {
+        // Save current task changes first
+        if (!IsNewTask && !string.IsNullOrWhiteSpace(Task.Title))
+        {
+            await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+        }
+
+        var index = taskNavigationStack.IndexOf(targetTask);
+        if (index >= 0)
+        {
+            taskNavigationStack = taskNavigationStack.Take(index + 1).ToList();
+        }
+        else
+        {
+            taskNavigationStack.Add(targetTask);
+        }
+        Task = targetTask;
+        lastTaskId = targetTask.Id;
+        await TaskChanged.InvokeAsync(targetTask);
+        await OnRefreshData.InvokeAsync();
+    }
+
+    private void HandleTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newTagText))
+        {
+            var tag = newTagText.Trim().ToLower();
+            if (Task.Tags == null)
+            {
+                Task.Tags = new List<string>();
+            }
+            if (!Task.Tags.Contains(tag))
+            {
+                Task.Tags.Add(tag);
+            }
+            newTagText = "";
+        }
+    }
+
+    private void RemoveTag(string tag)
+    {
+        Task.Tags?.Remove(tag);
+    }
+
+    private async Task HandleSubtaskKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddSubtask();
+        }
+    }
+
+    private async Task AddSubtask()
+    {
+        if (string.IsNullOrWhiteSpace(newSubtaskTitle)) return;
+
+        var subtask = new TaskItem
+        {
+            ListId = Task.ListId,
+            ParentTaskId = Task.Id,
+            Title = newSubtaskTitle.Trim(),
+            Status = TaskCompletionStatus.ToDo,
+            Priority = TaskPriority.Normal,
+            Tags = new List<string>()
+        };
+
+        var response = await Http.PostAsJsonAsync("api/workspace/tasks", subtask, JsonOptions.Default);
+        if (response.IsSuccessStatusCode)
+        {
+            var created = await response.Content.ReadFromJsonAsync<TaskItem>(JsonOptions.Default);
+            if (created != null)
+            {
+                AllTasks.Add(created);
+            }
+            newSubtaskTitle = "";
+            await OnRefreshData.InvokeAsync();
+        }
+    }
+
+    private async Task LogTime()
+    {
+        if (!newLogHours.HasValue || newLogHours.Value <= 0) return;
+
+        var entry = new TimeLogEntry
+        {
+            Id = Guid.NewGuid(),
+            User = UserService.CurrentUser?.Name ?? "Admin",
+            Hours = newLogHours.Value,
+            Note = newLogNote.Trim(),
+            LoggedAt = DateTime.UtcNow
+        };
+
+        if (Task.TimeLogs == null)
+        {
+            Task.TimeLogs = new List<TimeLogEntry>();
+        }
+        Task.TimeLogs.Add(entry);
+        
+        newLogHours = null;
+        newLogNote = "";
+
+        // Save immediately to preserve logs
+        await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+        await OnRefreshData.InvokeAsync();
+    }
+
+    private async Task RemoveTimeLog(Guid logId)
+    {
+        if (Task.TimeLogs == null) return;
+        Task.TimeLogs.RemoveAll(l => l.Id == logId);
+        
+        await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+        await OnRefreshData.InvokeAsync();
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        isUploadingFile = true;
+        try
+        {
+            var maxFileSize = 5 * 1024 * 1024; // 5MB limit
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync($"api/workspace/tasks/{Task.Id}/attachments", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadResponse>();
+                if (result != null && !string.IsNullOrEmpty(result.Path))
+                {
+                    if (Task.Attachments == null)
+                    {
+                        Task.Attachments = new List<string>();
+                    }
+                    if (!Task.Attachments.Contains(result.Path))
+                    {
+                        Task.Attachments.Add(result.Path);
+                    }
+                    await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+                    await OnRefreshData.InvokeAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading file: {ex.Message}");
+        }
+        finally
+        {
+            isUploadingFile = false;
+        }
+    }
+
+    private async Task RemoveAttachment(string path)
+    {
+        if (Task.Attachments != null)
+        {
+            Task.Attachments.Remove(path);
+            await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+            await OnRefreshData.InvokeAsync();
+        }
+    }
+
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(newCommentText)) return;
+
+        var comment = new TaskComment
+        {
+            Id = Guid.NewGuid(),
+            TaskId = Task.Id,
+            Author = UserService.CurrentUser?.Name ?? "Admin",
+            Content = newCommentText.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        if (Task.Comments == null)
+        {
+            Task.Comments = new List<TaskComment>();
+        }
+        Task.Comments.Add(comment);
+        
+        newCommentText = "";
+
+        // Save immediately to preserve comments
+        await Http.PutAsJsonAsync($"api/workspace/tasks/{Task.Id}", Task, JsonOptions.Default);
+        await OnRefreshData.InvokeAsync();
+    }
+
+    private void OpenLightbox(string path)
+    {
+        activeLightboxImage = path;
+    }
+
+    private void CloseLightbox()
+    {
+        activeLightboxImage = null;
+    }
+
+    private async Task SaveTask()
+    {
+        if (string.IsNullOrWhiteSpace(Task.Title))
+        {
+            return;
+        }
+        await OnSave.InvokeAsync(Task);
+    }
+
+    private async Task DeleteTask()
+    {
+        await OnDelete.InvokeAsync(Task);
+    }
+
+    private async Task Close()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private string GetStatusDisplayName(TaskCompletionStatus status)
+    {
+        return status switch
+        {
+            TaskCompletionStatus.ToDo => "To Do",
+            TaskCompletionStatus.ReadyForDevelopment => "Ready for Dev",
+            TaskCompletionStatus.InProgress => "In Progress",
+            TaskCompletionStatus.InReview => "In Review",
+            TaskCompletionStatus.ReadyForTesting => "Ready for Test",
+            TaskCompletionStatus.InTesting => "In Testing",
+            TaskCompletionStatus.Tested => "Tested",
+            TaskCompletionStatus.Done => "Done",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetInitials(string? assignee)
+    {
+        if (string.IsNullOrWhiteSpace(assignee)) return "";
+        var name = assignee.Split('(')[0].Trim();
+        var parts = name.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        return (parts[0][0].ToString() + parts[1][0].ToString()).ToUpper();
+    }
+
+    private string GetAssigneeClass(string? assignee)
+    {
+        if (string.IsNullOrWhiteSpace(assignee)) return "";
+        if (assignee.Contains("Розробник") || assignee.Contains("Developer")) return "assignee-dev";
+        if (assignee.Contains("Тестувальник") || assignee.Contains("QA")) return "assignee-qa";
+        if (assignee.Contains("Дизайнер") || assignee.Contains("Designer")) return "assignee-designer";
+        if (assignee.Contains("Manager") || assignee.Contains("Олена")) return "assignee-pm";
+        return "assignee-default";
+    }
+
+    private class UploadResponse
+    {
+        public string Path { get; set; } = string.Empty;
+    }
+}
